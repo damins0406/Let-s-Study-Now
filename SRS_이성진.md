@@ -17,7 +17,7 @@
 | 22311942 | 김주영 |
 | 22313547 | 류다영 |
 
-### 1. 요구사항 정의 (Requirements description)
+### 요구사항 정의 (Requirements description)
 
 | ID | 업무명 (기능) (Function name) | 요약 (Summary of the function) | 세부요구사항 설명 (서술식) (predicative summary of the function) | 우선순위 (Priority) (High, Medium, Low) |
 |:---|:---|:---|:---|:---|
