@@ -79,7 +79,7 @@ public class MemberController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/profile")
+    @GetMapping("/api/profile")
     public ResponseEntity profile(Authentication auth){
         try{
             var customUser = (CustomUser) auth.getPrincipal();
