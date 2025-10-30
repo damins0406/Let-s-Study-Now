@@ -1,9 +1,7 @@
 package com.team.LetsStudyNow_rg.member;
 
 import com.team.LetsStudyNow_rg.auth.CustomUser;
-import com.team.LetsStudyNow_rg.dto.LoginDto;
-import com.team.LetsStudyNow_rg.dto.ProfileDto;
-import com.team.LetsStudyNow_rg.dto.RegisterDto;
+import com.team.LetsStudyNow_rg.dto.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -23,6 +21,8 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class MemberController {
     private final MemberService memberService;
+    private final MemberUpdateService memberUpdateService;
+
     // 로그인 api
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인하고, HttpOnly 쿠키에 JWT를 발급합니다.")
     @ApiResponses(value = {
@@ -85,6 +85,59 @@ public class MemberController {
             var customUser = (CustomUser) auth.getPrincipal();
             ProfileDto profileDto = memberService.profileService(customUser);
             return ResponseEntity.ok(profileDto);
+        } catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 프로필 수정 api
+    @Operation(summary = "마이프로필 수정", description = "현재 로그인된 사용자의 프로필 정보(사진, 공부분야, 자기소개)를 수정합니다. (인증 필요)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "프로필 수정 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/api/update/profile")
+    public ResponseEntity updateProfile(
+            @Valid @RequestBody
+            ProfileUpdateDto req,
+            Authentication auth
+    )
+    {
+        try{
+            var customUser = (CustomUser) auth.getPrincipal();
+            ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req);
+            return ResponseEntity.ok(profileDto);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
+    }
+
+    @Operation(summary = "비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. (인증 필요)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
+            @ApiResponse(responseCode = "400", description = "입력값 오류 또는 현재 비밀번호 불일치"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PatchMapping("/api/update/password")
+    public ResponseEntity<String> changePassword(
+        @Valid @RequestBody
+        PasswordChangeDto passwordChangeDto,
+        BindingResult bindingResult,
+        Authentication auth
+    ){
+        if(bindingResult.hasErrors()){
+            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(errorMessage);
+        }
+
+        try {
+            CustomUser user = (CustomUser) auth.getPrincipal();
+            memberUpdateService.changePassword(user, passwordChangeDto);
+            return ResponseEntity.ok("비밀번호가 변경되었습니다.");
         } catch (Exception e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }
