@@ -34,15 +34,14 @@ public class MemberController {
             @Valid @RequestBody LoginDto req,
             BindingResult br,
             HttpServletResponse response
-            )
-    {
-        if(br.hasErrors()){
+    ) {
+        if (br.hasErrors()) {
             return ResponseEntity.badRequest().body(br.getAllErrors());
         }
         try {
             memberService.loginService(req, response);
             return ResponseEntity.status(HttpStatus.CREATED).body("로그인 성공");
-        } catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body("로그인 실패");
         }
     }
@@ -57,16 +56,16 @@ public class MemberController {
     public ResponseEntity registerAct(
             @Valid @RequestBody RegisterDto req,
             BindingResult br
-    ){
-        if(br.hasErrors()){
+    ) {
+        if (br.hasErrors()) {
             System.out.println(br.getAllErrors());
             return ResponseEntity.badRequest().body(br.getAllErrors());
         }
 
-        try{
+        try {
             memberService.registerService(req);
             return ResponseEntity.status(HttpStatus.CREATED).body("회원가입 성공");
-        } catch (IllegalArgumentException e){
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -80,12 +79,12 @@ public class MemberController {
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/api/profile")
-    public ResponseEntity profile(Authentication auth){
-        try{
+    public ResponseEntity profile(Authentication auth) {
+        try {
             var customUser = (CustomUser) auth.getPrincipal();
             ProfileDto profileDto = memberService.profileService(customUser);
             return ResponseEntity.ok(profileDto);
-        } catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -103,9 +102,8 @@ public class MemberController {
             @Valid @RequestBody
             ProfileUpdateDto req,
             Authentication auth
-    )
-    {
-        try{
+    ) {
+        try {
             var customUser = (CustomUser) auth.getPrincipal();
             ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req);
             return ResponseEntity.ok(profileDto);
@@ -115,6 +113,7 @@ public class MemberController {
 
     }
 
+    // 회원 비밀번호 변경 api
     @Operation(summary = "비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. (인증 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
@@ -124,12 +123,12 @@ public class MemberController {
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/api/update/password")
     public ResponseEntity<String> changePassword(
-        @Valid @RequestBody
-        PasswordChangeDto passwordChangeDto,
-        BindingResult bindingResult,
-        Authentication auth
-    ){
-        if(bindingResult.hasErrors()){
+            @Valid @RequestBody
+            PasswordChangeDto passwordChangeDto,
+            BindingResult bindingResult,
+            Authentication auth
+    ) {
+        if (bindingResult.hasErrors()) {
             String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
             return ResponseEntity.badRequest().body(errorMessage);
         }
@@ -138,9 +137,28 @@ public class MemberController {
             CustomUser user = (CustomUser) auth.getPrincipal();
             memberUpdateService.changePassword(user, passwordChangeDto);
             return ResponseEntity.ok("비밀번호가 변경되었습니다.");
-        } catch (Exception e){
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
+    // 회원 탈퇴 api
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("api/delete/account")
+    public ResponseEntity<String> AccountDelete(
+            @Valid @RequestBody AccountDeleteDto req,
+            BindingResult bindingResult,
+            Authentication auth
+    ) {
+        if (bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
+        }
+        try {
+            CustomUser customUser = (CustomUser) auth.getPrincipal();
+            memberUpdateService.deleteAccount(customUser, req);
+            return ResponseEntity.ok("계정이 삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
