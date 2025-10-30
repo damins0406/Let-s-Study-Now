@@ -1,10 +1,7 @@
 package com.team.LetsStudyNow_rg.member;
 
 import com.team.LetsStudyNow_rg.auth.CustomUser;
-import com.team.LetsStudyNow_rg.dto.AccountDeleteDto;
-import com.team.LetsStudyNow_rg.dto.PasswordChangeDto;
-import com.team.LetsStudyNow_rg.dto.ProfileDto;
-import com.team.LetsStudyNow_rg.dto.ProfileUpdateDto;
+import com.team.LetsStudyNow_rg.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,6 +37,23 @@ public class MemberUpdateService {
                 user.getStudyField(),
                 user.getBio()
         );
+    }
+
+    // 이메일 변경 로직
+    @Transactional
+    public void updateEmail(CustomUser customUser, EmailChangeDtd req) {
+        Member user = memberRepository.findById(customUser.id)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        if (memberRepository.existsByEmail(req.newEmail())) {
+            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+        }
+
+        user.setEmail(req.newEmail());
     }
 
     // 비밀번호 변경 로직

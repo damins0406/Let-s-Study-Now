@@ -113,6 +113,34 @@ public class MemberController {
 
     }
 
+    // 이메일 변경 api
+    @Operation(summary = "이메일 변경", description = "현재 로그인된 사용자의 이메일 주소를 변경합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "이메일 변경 성공"),
+            @ApiResponse(responseCode = "400", description = "입력값 오류, 비밀번호 불일치, 또는 이미 사용 중인 이메일"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/api/update/email")
+    public ResponseEntity<String> updateEmail(
+            @Valid @RequestBody EmailChangeDtd req,
+            BindingResult bindingResult,
+            Authentication auth
+    ) {
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(errorMessage);
+        }
+
+        try {
+            CustomUser customUser = (CustomUser) auth.getPrincipal();
+            memberUpdateService.updateEmail(customUser, req);
+            return ResponseEntity.ok("이메일이 변경되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // 회원 비밀번호 변경 api
     @Operation(summary = "비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. (인증 필요)")
     @ApiResponses(value = {
