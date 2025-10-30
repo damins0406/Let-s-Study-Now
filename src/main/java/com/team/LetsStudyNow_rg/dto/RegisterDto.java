@@ -14,7 +14,7 @@ public record RegisterDto(
         )
         String password,
         @NotBlank
-        String pwCheck,
+        String checkPassword,
 
         Integer age,
         String profileImageFile,
@@ -23,6 +23,6 @@ public record RegisterDto(
 ) {
     @AssertTrue(message = "비밀번호를 확인하세요.")
     public boolean isCheckPw(){
-        return password != null && password.equals(pwCheck);
+        return password != null && password.equals(checkPassword);
     }
 }
