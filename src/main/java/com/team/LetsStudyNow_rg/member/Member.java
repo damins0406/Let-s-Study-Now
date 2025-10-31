@@ -20,8 +20,8 @@ public class Member {
     private String password; // 비밀번호
 
     private Integer age; // 나이
-    private String role; // 권한시
-    private String profileImage; // 프로필 사진 (임)
+    private String role; // 권한
+    private String profileImage; // 프로필 사진 (임시)
     private String studyField; // 공부 분야
     @Column(length = 500)
     private String bio; // 자기소개

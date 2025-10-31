@@ -53,7 +53,7 @@ public class MemberService {
         if(memberRepository.existsByUsername(req.username())){
             throw new IllegalArgumentException("이미 존재하는 아이디입니다.");
         }
-        // 비밀번호 encode
+        // 비밀번호 암호화
         String encodePw = passwordEncoder.encode(req.password());
 
         Member member = new Member();
