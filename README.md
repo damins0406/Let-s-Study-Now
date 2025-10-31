@@ -1,71 +1,70 @@
-# 📚 Let's Study Now
-즉석 스터디 그룹 매칭 웹사이트  
-실시간으로 스터디 그룹을 매칭해주는 웹사이트입니다.  
-언제든지 접속해서 다른 사람들과 함께 공부할 수 있는 환경을 제공합니다. ✨  
+# Getting Started with Create React App
 
----
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## 👤 사용자 계정 / 회원 관리
-- 회원가입  
-- 로그인  
-- 프로필 관리 (사진 등록 가능)  
+## Available Scripts
 
----
+In the project directory, you can run:
 
-## 🤝 그룹 매칭 / 참여
-- **오픈 스터디 참여**  
-  - 공용 스터디룸에 자유롭게 입장  
-  - 매칭을 기다릴 필요 없이 즉시 시작 가능  
+### `npm start`
 
-- **그룹 스터디 참여**  
-  - 공부 시간 설정: 30분, 1시간, 2시간 등  
-  - 같은 공부시간을 설정한 사용자끼리 자동 매칭  
-  - 모두 함께 시작하고 목표 시간이 정해져 있음  
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-- **URL 공유 매칭**  
-  - 공유 링크를 통해 친구들을 직접 초대  
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
 
-- **스터디룸 퇴장**  
+### `npm test`
 
----
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-## 🖥 스터디룸 기능
-- **화상 연결**  
-  - 카메라를 통해 서로의 모습 확인  
-  - 자유롭게 끄고 킬 수 있음  
+### `npm run build`
 
-- **음성 연결**  
-  - URL 공유 매칭인 경우에만 사용 가능  
-  - 자유롭게 끄고 킬 수 있음  
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-- **공부 상태 표시 (공부 / 휴식)**  
-  - 버튼을 눌러 자신의 상황을 다른 사용자에게 알림  
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-- **타이머 기능**  
-  - 원하는 공부 시간과 휴식 시간 설정 가능  
-  - 자동으로 공부 상태 변경  
-  - 반복적으로 사용자에게 알림 전송  
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-- **상태메시지 등록**  
-  - 현재 기분이나 상황을 다른 사용자들과 간단히 공유  
+### `npm run eject`
 
----
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
-## 📝 추가 기능
-- **체크리스트**  
-  - 오늘 할 공부 목록이나 할 일 관리  
-  - 체크리스트 생성 / 수정 / 완료 표시 / 순서 변경 / 조회  
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-- **디데이 설정**  
-  - 시험일, 과제 마감일 등 중요한 날짜 등록  
-  - 남은 시간 확인 가능  
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-- **스터디 기록 조회**  
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-- **체크리스트 달성률 조회**  
+## Learn More
 
----
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-## 🚀 목표
-"Let's Study Now"는 혼자가 아닌 함께하는 공부 문화를 만들어  
-사용자가 꾸준히 목표를 달성할 수 있도록 돕는 것을 목표로 합니다.
+To learn React, check out the [React documentation](https://reactjs.org/).
+
+### Code Splitting
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+
+### Analyzing the Bundle Size
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
