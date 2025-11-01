@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "1. 사용자 인증/계정 API", description = "회원가입, 로그인, 프로필 관리 등 사용자 계정 관련 API")
 @RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class MemberController {
     private final MemberService memberService;
@@ -29,7 +30,7 @@ public class MemberController {
             @ApiResponse(responseCode = "201", description = "로그인 성공"),
             @ApiResponse(responseCode = "400", description = "로그인 실패 (아이디 또는 비밀번호 불일치 / 입력값 오류)")
     })
-    @PostMapping("/api/loginAct")
+    @PostMapping("/loginAct")
     public ResponseEntity loginAct(
             @Valid @RequestBody LoginDto req,
             BindingResult br,
@@ -52,7 +53,7 @@ public class MemberController {
             @ApiResponse(responseCode = "201", description = "회원가입 성공"),
             @ApiResponse(responseCode = "400", description = "입력값 유효성 검사 실패 또는 이메일/아이디 중복")
     })
-    @PostMapping("api/registerAct")
+    @PostMapping("/registerAct")
     public ResponseEntity registerAct(
             @Valid @RequestBody RegisterDto req,
             BindingResult br
@@ -78,7 +79,7 @@ public class MemberController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("/api/profile")
+    @GetMapping("/profile")
     public ResponseEntity profile(Authentication auth) {
         try {
             var customUser = (CustomUser) auth.getPrincipal();
@@ -97,7 +98,7 @@ public class MemberController {
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
-    @PatchMapping("/api/update/profile")
+    @PatchMapping("/update/profile")
     public ResponseEntity updateProfile(
             @Valid @RequestBody
             ProfileUpdateDto req,
@@ -121,7 +122,7 @@ public class MemberController {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @PreAuthorize("isAuthenticated()")
-    @PutMapping("/api/update/email")
+    @PutMapping("/update/email")
     public ResponseEntity<String> updateEmail(
             @Valid @RequestBody EmailChangeDtd req,
             BindingResult bindingResult,
@@ -149,7 +150,7 @@ public class MemberController {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @PreAuthorize("isAuthenticated()")
-    @PatchMapping("/api/update/password")
+    @PatchMapping("/update/password")
     public ResponseEntity<String> changePassword(
             @Valid @RequestBody
             PasswordChangeDto passwordChangeDto,
@@ -172,7 +173,7 @@ public class MemberController {
 
     // 회원 탈퇴 api
     @PreAuthorize("isAuthenticated()")
-    @DeleteMapping("api/delete/account")
+    @DeleteMapping("/delete/account")
     public ResponseEntity<String> AccountDelete(
             @Valid @RequestBody AccountDeleteDto req,
             BindingResult bindingResult,

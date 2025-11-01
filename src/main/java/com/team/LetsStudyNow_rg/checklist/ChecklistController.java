@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChecklistController {
     private final ChecklistService checklistService;
 
+    // 체크리스트 생성 api
     @Operation(summary = "체크리스트 생성", description = "선택한 날짜에 새로운 할 일을 추가합니다. (인증 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "체크리스트 생성 성공",

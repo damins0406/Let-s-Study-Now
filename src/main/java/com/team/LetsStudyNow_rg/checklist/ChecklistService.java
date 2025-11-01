@@ -15,6 +15,7 @@ public class ChecklistService {
     private final ChecklistRepository checklistRepository;
     private final MemberRepository memberRepository;
 
+    // 체크리스트 생성 로직
     @Transactional
     public ChecklistResponseDto createChecklist(CustomUser customUser, ChecklistCreateDto req) {
         Member member = memberRepository.findById(customUser.id)
