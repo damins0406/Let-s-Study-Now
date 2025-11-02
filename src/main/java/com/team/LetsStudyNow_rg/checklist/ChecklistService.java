@@ -3,6 +3,7 @@ package com.team.LetsStudyNow_rg.checklist;
 import com.team.LetsStudyNow_rg.auth.CustomUser;
 import com.team.LetsStudyNow_rg.checklist.dto.ChecklistCreateDto;
 import com.team.LetsStudyNow_rg.checklist.dto.ChecklistResponseDto;
+import com.team.LetsStudyNow_rg.checklist.dto.ChecklistUpdateDto;
 import com.team.LetsStudyNow_rg.member.Member;
 import com.team.LetsStudyNow_rg.member.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,21 @@ public class ChecklistService {
     @Transactional(readOnly = true)
     public List<Integer> getDaysWithChecklistByMonth(CustomUser customUser, int year, int month) {
         return checklistRepository.findDaysWithChecklistByMonth(customUser.id, year, month);
+    }
+
+    // 체크리스트 수정
+    @Transactional
+    public ChecklistResponseDto updateChecklist(CustomUser customUser, Long checklistId, ChecklistUpdateDto dto) {
+        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id);
+        checklist.setContent(dto.content());
+
+        ChecklistResponseDto responseDto = new ChecklistResponseDto(
+                checklist.getId(),
+                checklist.getTargetDate(),
+                checklist.getContent(),
+                checklist.isCompleted()
+        );
+        return responseDto;
     }
 
 }

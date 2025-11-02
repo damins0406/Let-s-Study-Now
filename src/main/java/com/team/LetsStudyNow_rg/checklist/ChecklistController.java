@@ -3,6 +3,7 @@ package com.team.LetsStudyNow_rg.checklist;
 import com.team.LetsStudyNow_rg.auth.CustomUser;
 import com.team.LetsStudyNow_rg.checklist.dto.ChecklistCreateDto;
 import com.team.LetsStudyNow_rg.checklist.dto.ChecklistResponseDto;
+import com.team.LetsStudyNow_rg.checklist.dto.ChecklistUpdateDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -84,8 +85,31 @@ public class ChecklistController {
             @RequestParam("year") int year,
             @RequestParam("month") int month,
             Authentication auth
-    ){
+    ) {
         CustomUser customUser = (CustomUser) auth.getPrincipal();
         return ResponseEntity.ok(checklistService.getDaysWithChecklistByMonth(customUser, year, month));
+    }
+
+    // 체크리스트 수정 api
+    @Operation(summary = "체크리스트 내용 수정", description = "기존 체크리스트의 내용을 수정합니다.")
+    @PutMapping("/{checklistId}")
+    public ResponseEntity updateChecklist(
+            @PathVariable("checklistId") Long checklistId,
+            @Valid @RequestBody ChecklistUpdateDto dto,
+            BindingResult bindingResult,
+            Authentication auth
+    ) {
+        if (bindingResult.hasErrors()) {
+            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
+            return ResponseEntity.badRequest().body(errorMessage);
+        }
+
+        try {
+            CustomUser customUser = (CustomUser) auth.getPrincipal();
+            return ResponseEntity.ok(checklistService.updateChecklist(customUser, checklistId, dto));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+
     }
 }
