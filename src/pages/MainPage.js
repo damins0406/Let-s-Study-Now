@@ -13,7 +13,6 @@ function MainPage() {
           <li onClick={() => navigate("/")}>홈</li>
           <li onClick={() => navigate("/open-study")}>오픈 스터디방</li>
           <li onClick={() => navigate("/group-study")}>그룹 스터디방</li>
-          <li onClick={() => navigate("/timer")}>타이머</li>
           <li onClick={() => navigate("/checklist")}>체크리스트</li>
           <li onClick={() => navigate("/profile")}>프로필</li>
         </ul>
@@ -40,14 +39,6 @@ function MainPage() {
 
       {/* 주요 기능 카드 */}
       <section style={styles.cardSection}>
-        <div style={styles.card}>
-          <h3>🧠 집중 타이머</h3>
-          <p>공부/휴식 주기를 설정하고 집중력을 높이세요.</p>
-          <button style={styles.cardBtn} onClick={() => navigate("/timer")}>
-            시작하기
-          </button>
-        </div>
-
         <div style={styles.card}>
           <h3>👥 오픈 스터디방</h3>
           <p>현재 열려 있는 공용 스터디룸에 언제든지 자유롭게 입장하세요.</p>
