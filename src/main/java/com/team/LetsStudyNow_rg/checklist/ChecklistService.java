@@ -82,4 +82,9 @@ public class ChecklistService {
         return responseDto;
     }
 
+    // 체크리스트 삭제
+    public void deleteChecklist(CustomUser customUser, Long checklistId) {
+        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id);
+        checklistRepository.delete(checklist);
+    }
 }

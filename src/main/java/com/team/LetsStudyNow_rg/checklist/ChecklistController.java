@@ -112,4 +112,25 @@ public class ChecklistController {
         }
 
     }
+
+    // 체크리스트 삭제 api
+    @Operation(summary = "체크리스트 삭제", description = "특정 체크리스트를 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "삭제 성공"),
+            @ApiResponse(responseCode = "400", description = "존재하지 않는 항목이거나 권한 없음"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @DeleteMapping("/{checklistId}")
+    public ResponseEntity deleteChecklist(
+            @PathVariable("checklistId") Long checklistId,
+            Authentication auth
+    ) {
+        try {
+            CustomUser customUser = (CustomUser) auth.getPrincipal();
+            checklistService.deleteChecklist(customUser, checklistId);
+            return ResponseEntity.ok("삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
