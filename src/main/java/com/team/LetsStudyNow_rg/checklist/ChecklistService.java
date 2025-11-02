@@ -9,6 +9,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class ChecklistService {
@@ -36,6 +41,23 @@ public class ChecklistService {
         );
 
         return responseDto;
+    }
+
+    // 특정 날짜 체크리스트 조회
+    @Transactional(readOnly = true)
+    public List<ChecklistResponseDto> getChecklistByDate(CustomUser customUser, LocalDate date) {
+        List<Checklist> checklists = checklistRepository.findByMemberIdAndTargetDate(customUser.id, date);
+
+        var result = checklists.stream()
+                .map(checklist -> new ChecklistResponseDto(
+                        checklist.getId(),
+                        checklist.getTargetDate(),
+                        checklist.getContent(),
+                        checklist.isCompleted()
+                ))
+                .collect(Collectors.toList());
+
+        return result;
     }
 
 }
