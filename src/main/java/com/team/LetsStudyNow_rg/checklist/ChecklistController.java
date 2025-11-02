@@ -76,4 +76,16 @@ public class ChecklistController {
         // 목록이 비었으면 체크리스트 없다고 처리 필요.
         return ResponseEntity.ok(checklist);
     }
+
+    // 특정 달(월)에 존재하는 체크리스트 날짜(일) 조회
+    @Operation(summary = "월별 체크리스트 존재 날짜 조회", description = "달력에 표시하기 위해 해당 월에 체크리스트가 있는 '일'들을 조회합니다. (예: [1, 5, 12, 30])")
+    @GetMapping("/month-summary")
+    public ResponseEntity<List<Integer>> getDaysWithChecklist(
+            @RequestParam("year") int year,
+            @RequestParam("month") int month,
+            Authentication auth
+    ){
+        CustomUser customUser = (CustomUser) auth.getPrincipal();
+        return ResponseEntity.ok(checklistService.getDaysWithChecklistByMonth(customUser, year, month));
+    }
 }

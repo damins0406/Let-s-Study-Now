@@ -60,4 +60,10 @@ public class ChecklistService {
         return result;
     }
 
+    // 특정 날짜 체크리스트 조회
+    @Transactional(readOnly = true)
+    public List<Integer> getDaysWithChecklistByMonth(CustomUser customUser, int year, int month) {
+        return checklistRepository.findDaysWithChecklistByMonth(customUser.id, year, month);
+    }
+
 }
