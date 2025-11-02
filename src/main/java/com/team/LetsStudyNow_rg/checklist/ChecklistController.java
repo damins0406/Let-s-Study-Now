@@ -66,16 +66,20 @@ public class ChecklistController {
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @GetMapping
-    public ResponseEntity<List<ChecklistResponseDto>> getChecklistByDate(
+    public ResponseEntity getChecklistByDate(
             // /api/checklist?date=2025-xx-xx 형식으로 요청
             @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate date,
             Authentication auth
     ) {
-        CustomUser customUser = (CustomUser) auth.getPrincipal();
-        List<ChecklistResponseDto> checklist = checklistService.getChecklistByDate(customUser, date);
-        // 목록이 비었으면 체크리스트 없다고 처리 필요.
-        return ResponseEntity.ok(checklist);
+            try{
+                CustomUser customUser = (CustomUser) auth.getPrincipal();
+                List<ChecklistResponseDto> checklist = checklistService.getChecklistByDate(customUser, date);
+                // 목록이 비었으면 체크리스트 없다고 처리 필요.
+                return ResponseEntity.ok(checklist);
+            } catch (Exception e) {
+                return ResponseEntity.badRequest().body(e.getMessage());
+            }
     }
 
     // 특정 달(월)에 존재하는 체크리스트 날짜(일) 조회
@@ -129,6 +133,22 @@ public class ChecklistController {
             CustomUser customUser = (CustomUser) auth.getPrincipal();
             checklistService.deleteChecklist(customUser, checklistId);
             return ResponseEntity.ok("삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 체크리스트 완료/미완료 설정 api
+    @Operation(summary = "체크리스트 완료/미완료 설정", description = "체크리스트의 완료 상태를 변경합니다.")
+    @PatchMapping("/{checklistId}/toggle")
+    public ResponseEntity toggleChecklist(
+            @PathVariable("checklistId") Long checklistId,
+            Authentication auth
+    ) {
+        try {
+            CustomUser customUser = (CustomUser) auth.getPrincipal();
+            ChecklistResponseDto responseDto = checklistService.toggleChecklist(customUser, checklistId);
+            return ResponseEntity.ok(responseDto);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

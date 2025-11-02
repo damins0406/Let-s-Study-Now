@@ -70,7 +70,8 @@ public class ChecklistService {
     // 체크리스트 수정
     @Transactional
     public ChecklistResponseDto updateChecklist(CustomUser customUser, Long checklistId, ChecklistUpdateDto dto) {
-        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id);
+        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
         checklist.setContent(dto.content());
 
         ChecklistResponseDto responseDto = new ChecklistResponseDto(
@@ -83,8 +84,30 @@ public class ChecklistService {
     }
 
     // 체크리스트 삭제
+    @Transactional
     public void deleteChecklist(CustomUser customUser, Long checklistId) {
-        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id);
+        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
         checklistRepository.delete(checklist);
+    }
+
+    // 체크리스트 완료/미완료 설정
+    @Transactional
+    public ChecklistResponseDto toggleChecklist(CustomUser customUser, Long checklistId) {
+        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
+                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
+
+        if (!checklist.isCompleted()) {
+            checklist.setCompleted(true);
+        } else {
+            checklist.setCompleted(false);
+        }
+
+        return new ChecklistResponseDto(
+                checklist.getId(),
+                checklist.getTargetDate(),
+                checklist.getContent(),
+                checklist.isCompleted()
+        );
     }
 }
