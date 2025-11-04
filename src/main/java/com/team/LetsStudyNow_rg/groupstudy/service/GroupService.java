@@ -1,0 +1,89 @@
+package com.team.LetsStudyNow_rg.groupstudy.service;
+
+import com.team.LetsStudyNow_rg.groupstudy.domain.Group;
+import com.team.LetsStudyNow_rg.groupstudy.dto.CreateGroupRequest;
+import com.team.LetsStudyNow_rg.groupstudy.dto.GroupResponse;
+import com.team.LetsStudyNow_rg.groupstudy.repository.GroupMemberRepository;
+import com.team.LetsStudyNow_rg.groupstudy.repository.GroupRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@Transactional(readOnly = true)  // 읽기 전용 (기본)
+public class GroupService {
+
+    private final GroupRepository groupRepository;
+    private final GroupMemberRepository groupMemberRepository;
+
+    // 생성자 주입
+    public GroupService(GroupRepository groupRepository,
+                        GroupMemberRepository groupMemberRepository) {
+        this.groupRepository = groupRepository;
+        this.groupMemberRepository = groupMemberRepository;
+    }
+
+    // 그룹 생성
+    @Transactional
+    public GroupResponse createGroup(CreateGroupRequest request) {
+        // 1. 그룹 이름 입력 (SRS 6.2.2)
+        if (request.getGroupName() == null || request.getGroupName().trim().isEmpty()) {
+            throw new IllegalArgumentException("그룹 이름을 입력해주세요");
+        }
+
+        // 2. 그룹 생성
+        Group group = new Group(request.getGroupName(), request.getLeaderId());
+
+        // 3. 저장
+        Group savedGroup = groupRepository.save(group);
+
+        // 4. 응답 반환
+        return new GroupResponse(savedGroup);
+    }
+
+    // 그룹 조회
+    public GroupResponse getGroup(Long groupId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다"));
+        return new GroupResponse(group);
+    }
+
+    // 내가 만든 그룹 목록
+    public List<GroupResponse> getMyGroups(Long leaderId) {
+        List<Group> groups = groupRepository.findByLeaderId(leaderId);
+        return groups.stream()
+                .map(GroupResponse::new)  // Group → GroupResponse 변환
+                .collect(Collectors.toList());
+    }
+
+    // 전체 그룹 목록
+    public List<GroupResponse> getAllGroups() {
+        List<Group> groups = groupRepository.findAll();
+        return groups.stream()
+                .map(GroupResponse::new)
+                .collect(Collectors.toList());
+    }
+
+    // 그룹 삭제 (SRS 6.2.4, 6.2.6)
+    @Transactional
+    public void deleteGroup(Long groupId, Long userId) {
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다"));
+
+        // 그룹 생성자 확인
+        if (!group.getLeaderId().equals(userId)) {
+            throw new IllegalArgumentException("그룹 생성자만 그룹을 삭제할 수 있습니다");
+        }
+
+        // 멤버 수 확인 (SRS 6.2.6 그룹 생성자 외 다른 멤버 없어야 함)
+        long memberCount = groupMemberRepository.countByGroupId(groupId);
+        if (memberCount > 1) {
+            throw new IllegalArgumentException("그룹에 다른 멤버가 있으면 삭제할 수 없습니다");
+        }
+
+        // 삭제
+        groupRepository.deleteById(groupId);
+    }
+    }
