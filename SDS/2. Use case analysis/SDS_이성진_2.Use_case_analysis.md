@@ -17,415 +17,1014 @@
 
 ---
 
-### Use Case #1: Sign Up
-- **Summary**  
-  사용자가 시스템 이용을 위해 필수 및 선택 정보를 입력하고 계정을 생성한다. 
-- **Actor**: User  
-- **Preconditions**: 시스템 접속 가능 상태  
-- **Trigger**: 메인/로그인 화면에서 ‘회원가입’ 버튼 클릭  
-- **Main Success Scenario**
-  1. 회원가입 페이지에서 필수 정보를 입력한다.  
-  2. 시스템은 ID/이메일 중복 여부를 검증한다.  
-  3. 비밀번호 및 선택정보(나이, 프로필 사진, 관심 공부 분야, 자기소개 등)를 입력한다.  
-  4. 가입 완료 버튼 클릭 → DB에 저장 → 로그인 페이지로 이동.
-- **Extension Scenarios**
-  - ID/이메일 중복 또는 이메일 형식 오류 → 오류 메시지 출력 및 재입력 요구.  
-  - 프로필 사진 미업로드시 기본 이미지 적용.
+## Use case #1: 로그인 (Login)
+**Summary**  
+사용자가 등록된 ID와 비밀번호로 시스템에 로그인한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+사용자는 회원가입이 완료되어 있어야 한다.
+
+**Trigger**  
+로그인 버튼 클릭
+
+**Main success scenario**
+1. 사용자가 ID, 비밀번호 입력
+2. 로그인 버튼 클릭
+3. 서버에서 인증 수행
+4. 인증 성공 시 메인(스케줄) 페이지로 리디렉션
+
+**Extensions**
+- 입력란 공백 → 입력 요청 메시지 표시.
+- 정보 불일치 → 오류 메시지 표시.
 
 ---
 
-### Use Case #2: Login
-- **Summary**  
-  등록된 ID와 비밀번호로 시스템에 로그인한다.
-- **Actor**: User  
-- **Preconditions**: 회원가입 완료  
-- **Trigger**: 로그인 버튼 클릭  
-- **Main Success Scenario**
-  1. ID/비밀번호 입력 → 인증 수행.  
-  2. 인증 성공 시 메인(또는 스케줄) 페이지로 리디렉션. 
-- **Extension Scenarios**
-  - 입력란 공백 → “ID와 비밀번호를 입력하세요” 메시지.  
-  - 정보 불일치 → “ID 또는 비밀번호가 올바르지 않습니다” 메시지. 
+## Use case #2: 회원가입 (Sign Up)
+**Summary**  
+필수/선택 정보를 입력하여 계정을 생성한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+시스템 접속 가능 상태
+
+**Trigger**  
+회원가입 버튼 클릭
+
+**Main success scenario**
+1. 필수정보 입력
+2. ID 중복검사 등 검증
+3. 프로필 사진 업로드(선택)
+4. 저장 후 가입 완료, 로그인 페이지로 이동
+
+**Extensions**
+- 필수정보 누락/유효성 오류 → 에러 처리 및 안내.
 
 ---
 
-### Use Case #3: Logout
-- **Summary**  
-  로그인한 사용자가 시스템에서 로그아웃한다.
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 로그아웃 버튼 클릭  
-- **Main Success Scenario**
-  1. 로그아웃 요청 수신 → 세션 종료 처리 → 메인/로그인 페이지로 이동 및 성공 메시지 표시. 
+## Use case #3: 로그아웃 (Logout)
+**Summary**  
+사용자의 세션을 종료하고 로그아웃 상태로 만든다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+사용자가 로그인되어 있어야 함
+
+**Trigger**  
+로그아웃 버튼 클릭
+
+**Main success scenario**
+1. 로그아웃 버튼 클릭
+2. 세션/JWT 무효화
+3. 클라이언트 토큰 삭제 응답
+4. 로그인 페이지로 이동
+
+**Extensions**
+- 이미 로그아웃된 상태 → 안내 후 메인 이동
+- 토큰 무효화 오류 → 에러 메시지 및 로깅
 
 ---
 
-### Use Case #4: Register Status Message
-- **Summary**  
-  사용자가 현재 기분/상황을 간단한 상태 메시지로 등록하여 다른 참여자와 공유한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 프로필 관리 또는 상태 메시지 메뉴 진입  
-- **Main Success Scenario**
-  1. 상태 메시지 입력 → 등록 클릭 → 유효성 및 글자수 검사 → DB 저장 → 프로필에 반영.
-- **Extension Scenarios**
-  - 글자수 초과 → 경고 및 저장 거부.  
-  - 저장 취소 또는 페이지 이탈 → 기존 상태 유지.
+## Use case #4: 상태 메시지 등록 (Status Message)
+**Summary**  
+사용자가 현재 상태/기분을 메시지로 등록/수정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+상태 메시지 설정 메뉴 접근
+
+**Main success scenario**
+1. 입력 후 등록 클릭
+2. 유효성 검사 후 DB 저장
+3. 프로필 및 참여자 목록에 반영
+
+**Extensions**
+- 글자 수 초과 → 저장 거부/경고
+- 등록 취소 → 변경 없음
 
 ---
 
-### Use Case #5: Friend Invite (URL)
-- **Summary**  
-  사용자 고유의 초대 URL을 생성·복사하여 외부로 공유한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 친구 초대 버튼 클릭  
-- **Main Success Scenario**
-  1. 초대 URL 생성 및 표시 → 복사 → 외부 공유 → 수신자가 접속하면 회원가입/로그인 유도 및 초대정보 인식. 
-- **Extension Scenarios**
-  - URL 생성 실패(서버 오류) → 에러 표시.  
-  - 만료된 URL 접속 시 “유효 기간 만료” 메시지.
+## Use case #5: 친구 초대 공유 (Invite URL)
+**Summary**  
+고유 초대 URL을 생성해 외부로 공유한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+친구 초대 기능 클릭
+
+**Main success scenario**
+1. 초대 URL 생성 및 표시
+2. 사용자 복사/공유
+3. 수신자가 접근 시 가입/로그인 흐름과 연동
+
+**Extensions**
+- URL 생성 실패 → 에러 안내
+- 유효기간 만료 → 만료 메시지
+- 이미 친구인 경우 → 별도 처리
 
 ---
 
-### Use Case #6: View/Edit My Profile
-- **Summary**  
-  사용자가 자신의 기본 및 선택 정보를 조회하고 수정한다 (별명, 자기소개, 사진, 공부 분야 등). 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 마이 프로필/프로필 관리 진입  
-- **Main Success Scenario**
-  1. 현재 프로필 정보 표시 → 수정 → 저장 → DB 반영 및 성공 알림. 
-- **Extension Scenarios**
-  - 자기소개 글자수 초과 등 → 경고 및 저장 거부.  
-  - 프로필 사진 업로드 실패 → 기본 이미지 유지. 
+## Use case #6: 마이 프로필 조회/수정 (Profile View/Edit)
+**Summary**  
+사용자가 자신의 프로필을 조회하고 수정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+마이 프로필 메뉴 클릭
+
+**Main success scenario**
+1. 현재 정보 표시
+2. 수정 후 저장 → DB 반영
+3. 성공 알림 표시
+
+**Extensions**
+- 프로필 사진 업로드 실패 → 기본 이미지 유지
+- 자기소개 글자 수 초과 → 오류
 
 ---
 
-### Use Case #7: Write Self-Introduction
-- **Summary**  
-  자기소개를 작성/수정한다 (최대 200자). 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 프로필 수정 화면에서 자기소개 입력 후 저장  
-- **Main Success Scenario**
-  1. 자기소개 입력 → 저장 → DB 저장 및 프로필 반영 → 성공 알림.  
-- **Extension Scenarios**
-  - 200자 초과 시 저장 거부 및 경고 메시지.
+## Use case #7: 자기소개 작성 (Introduce Yourself)
+**Summary**  
+자기소개를 작성/수정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 프로필 페이지 접근
+
+**Trigger**  
+자기소개 입력 후 저장
+
+**Main success scenario**
+1. 입력 후 저장
+2. 글자수(최대 200자) 검증
+3. DB에 저장 및 반영
+
+**Extensions**
+- 글자수 초과 → 경고/저장 제한
 
 ---
 
-### Use Case #8: Display Basic Info (ID / Email / Age)
-- **Summary**  
-  사용자의 ID, 이메일, 나이를 프로필 화면에 표시한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 마이 프로필 페이지 로딩  
-- **Main Success Scenario**
-  1. DB에서 정보 조회 → 화면에 표시.  
-- **Extension Scenarios**
-  - 정보 누락 시 “정보 없음” 또는 비공개로 표시. 
+## Use case #8: 아이디/이메일/나이 표시 (Show Basic Info)
+**Summary**  
+사용자의 ID, 이메일, 나이를 표시한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태, 프로필 페이지 로드
+
+**Trigger**  
+프로필 페이지 로딩
+
+**Main success scenario**
+1. DB에서 정보 조회
+2. 화면에 정확히 표시
+
+**Extensions**
+- 필수 정보 누락 → '정보 없음' 표시
+- 나이 미제공 → 비공개 또는 공란 처리
 
 ---
 
-### Use Case #9: Select/Modify Study Fields
-- **Summary**  
-  사용자가 관심있는 공부 분야를 1개 이상 선택하거나 수정한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 마이 프로필 수정 > 공부 분야 선택  
-- **Main Success Scenario**
-  1. 분야 목록 조회 → 선택 → 저장 → DB 반영 → 완료 알림.  
-- **Extension Scenarios**
-  - 서버 오류로 목록 불러오기 실패 → 이전 목록 유지 또는 재시도 안내.  
-  - 선택 개수 제한(최소 1, 최대 5) 위반 시 경고. 
+## Use case #9: 공부 분야 선택 (Select Study Subjects)
+**Summary**  
+사용자가 관심있는 공부 분야를 하나 이상 선택한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+공부 분야 선택 섹션 클릭
+
+**Main success scenario**
+1. 목록에서 선택
+2. 저장 → DB 반영
+3. 알림 및 화면 반영
+
+**Extensions**
+- 목록 로드 실패 → 이전 목록 사용 또는 오류 안내
+- 최소/최대 선택 수 제한
 
 ---
 
-### Use Case #10: Upload/Edit Profile Picture
-- **Summary**  
-  로컬에서 이미지 파일을 선택하여 프로필 사진으로 업로드/변경한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 프로필 사진 업로드 버튼 클릭  
-- **Main Success Scenario**
-  1. 이미지 파일 선택 → 타입(예: JPEG/PNG/GIF) 검사 → 서버 저장 → 프로필에 반영 및 미리보기 제공.  
-- **Extension Scenarios**
-  - 지원하지 않는 파일 형식/크기 초과 → 업로드 거부 및 오류 메시지. 
+## Use case #10: 프로필 사진 업로드 (Upload Profile Picture)
+**Summary**  
+로컬에서 이미지를 선택해 프로필 사진으로 등록/변경한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+업로드 버튼 클릭
+
+**Main success scenario**
+1. 이미지 선택
+2. 파일 형식 검증(JPEG/PNG/GIF 등)
+3. 서버 저장 및 URL 반영
+4. 미리보기 및 성공 알림
+
+**Extensions**
+- 형식/크기 오류 → 업로드 거부
+- 업로드 실패 → 에러 메시지
 
 ---
 
-### Use Case #11: Account Settings
-- **Summary**  
-  비밀번호 변경, 이메일 변경, 아이디 변경, 계정 탈퇴 등 계정 관련 설정을 관리한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 계정 설정 메뉴 진입  
-- **Main Success Scenario**
-  1. 원하는 설정 선택 → 변경 → 저장 → 시스템 반영 및 알림.  
-- **Extension Scenarios**
-  - 보안 규칙 미준수(새 비밀번호 등) → 에러 및 재입력 요구.  
-  - 계정 탈퇴 시 최종 인증(비밀번호 재입력) 및 데이터 삭제/비활성화 처리. 
+## Use case #11: 계정 설정 (Account Settings)
+**Summary**  
+비밀번호/이메일/아이디 변경, 탈퇴, 알림 설정 등 계정 관련 설정을 관리한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+계정 설정 메뉴 진입
+
+**Main success scenario**
+1. 변경 항목 선택 및 입력
+2. 검증 후 저장
+3. 성공 알림
+
+**Extensions**
+- 비밀번호 변경/이메일 변경/탈퇴 관련 각종 오류 처리
 
 ---
 
-### Use Case #12: Change Password
-- **Summary**  
-  기존 비밀번호 확인 후 새 비밀번호로 변경한다 (최소 보안 규칙 적용). 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 계정 설정 > 비밀번호 변경 선택  
-- **Main Success Scenario**
-  1. 현재 비밀번호 확인 → 새 비밀번호 입력(정책 검사) → 암호화 저장 → 성공 알림.  
-- **Extension Scenarios**
-  - 현재 비밀번호 불일치 → 변경 거부.  
-  - 새 비밀번호 보안 규칙 미준수 → 에러 메시지. 
+## Use case #12: 비밀번호 변경 (Change Password)
+**Summary**  
+기존 비밀번호 확인 후 새 비밀번호로 변경한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+비밀번호 변경 선택
+
+**Main success scenario**
+1. 현재 비밀번호, 새 비밀번호 입력
+2. 현재 비밀번호 확인 및 보안 규칙 검증
+3. 암호화 후 DB 저장
+4. 성공 알림
+
+**Extensions**
+- 현재 비밀번호 불일치 → 에러
+- 새 비밀번호 규칙 미충족 → 에러
+- 저장 실패 → 에러
 
 ---
 
-### Use Case #13: Change ID
-- **Summary**  
-  본인 인증 후 새 아이디로 변경(중복 검사 포함). 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 계정 설정 > 아이디 변경  
-- **Main Success Scenario**
-  1. 새 아이디 입력 → 중복/형식 검사 → 저장 → 재로그인 유도(필요시).  
-- **Extension Scenarios**
-  - 규칙 위반 또는 중복 시 에러 표시. 
+## Use case #13: 이메일 변경 (Change Email)
+**Summary**  
+등록된 이메일을 새 이메일로 변경한다(인증 포함).
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태, 신규 이메일 사용 가능
+
+**Trigger**  
+이메일 변경 요청
+
+**Main success scenario**
+1. 새 이메일 입력
+2. 이메일 형식 및 중복 검사
+3. 인증 절차(메일) 수행
+4. DB 업데이트 및 성공 알림
+
+**Extensions**
+- 형식 오류/중복 → 에러
+- 인증 실패 → 에러
 
 ---
 
-### Use Case #14: Delete Account
-- **Summary**  
-  본인 인증(비밀번호) 후 계정을 탈퇴하고 관련 데이터를 삭제/비활성화한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 계정 설정 > 계정 탈퇴 선택  
-- **Main Success Scenario**
-  1. 최종 경고 및 본인 확인 → 삭제 처리 → 강제 로그아웃 → 탈퇴 완료 메시지.  
-- **Extension Scenarios**
-  - 비밀번호 불일치 또는 DB 처리 실패 시 탈퇴 실패 처리. 
+## Use case #14: 아이디 변경 (Change Username)
+**Summary**  
+본인 인증 후 새로운 아이디로 변경한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+아이디 변경 선택
+
+**Main success scenario**
+1. 새 아이디 입력
+2. 규칙 및 중복 검사
+3. DB 업데이트 및 알림 (재로그인 요구 가능)
+
+**Extensions**
+- 규칙 위반/중복 → 에러
 
 ---
 
-### Use Case #15: Notification Settings
-- **Summary**  
-  알림 종류/수신 여부/수단(푸시/이메일) 등을 설정한다. 
-- **Actor**: User  
-- **Preconditions**: 로그인 상태  
-- **Trigger**: 알림 설정 진입  
-- **Main Success Scenario**
-  1. 토글/옵션 선택 → 저장 → DB 반영 → 알림 변경 확인 메시지.  
-- **Extension Scenarios**
-  - 필수 알림 해제 시 제한 메시지 표시. 
+## Use case #15: 계정 탈퇴 (Delete Account)
+**Summary**  
+본인 인증 후 계정을 탈퇴하고 관련 데이터를 삭제 또는 비활성화한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+계정 탈퇴 선택
+
+**Main success scenario**
+1. 비밀번호 재입력 등 본인 확인
+2. 삭제/비활성화 처리
+3. 삭제 완료 알림 및 강제 로그아웃
+
+**Extensions**
+- 비밀번호 불일치 → 에러
+- DB 처리 실패 → 에러 및 안내
 
 ---
 
-### Use Case #16–20: Open Study Room (Create / View / Join / Delete / List)
-- **Summary**  
-  오픈 스터디룸 생성, 목록 조회, 참여, 삭제 등 공개 스터디 방 관련 기능 일괄. 
-- **Actors**: User  
-- **Preconditions**: 로그인 상태  
-- **Triggers**: 오픈 스터디 메뉴 진입 / 방 만들기 / 참여 버튼 클릭 등  
-- **Key Flows**
-  - **Create Room**: 필수 항목(제목, 공부 분야, 최대 인원 등) 입력 → 검증 → 생성 → 자동 입장.  
-  - **View List**: 실시간 업데이트되는 카드 형태 목록 제공(필터/검색 포함).  
-  - **Join Room**: 정원 확인 → 입장 처리 → 멤버 수 증가.  
-  - **Delete Room**: 일정 시간 무참가 또는 방이 빈 상태면 자동 삭제(설정된 타이머에 따라). 
-- **Extensions**
-  - 정원 초과, 삭제된 방 접근, 실시간 동기화 오류 등 예외 처리. 
+## Use case #16: 알림 설정 (Notification Settings)
+**Summary**  
+알림 종류·수신여부·수단 등을 설정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+알림 설정 메뉴 선택
+
+**Main success scenario**
+1. 알림 유형 선택/토글
+2. 저장 → DB 반영
+3. 성공 알림
+
+**Extensions**
+- 필수 알림 해제 시 제약 안내
 
 ---
 
-### Use Case #21: Video Connection (Camera)
-- **Summary**  
-  스터디룸 내에서 화상(카메라) 연결을 제어한다 (ON/OFF 상태 동기화).
-- **Actor**: User  
-- **Preconditions**: 방 입장 상태  
-- **Trigger**: 카메라 버튼 클릭  
-- **Main Success Scenario**
-  1. 카메라 ON/OFF 전환 → 상태를 실시간으로 다른 참여자에게 반영 → 영상 송출(ON).  
-- **Extension Scenarios**
-  - 장치 인식 오류 → 에러 메시지 및 재시도.  
-  - 네트워크 지연으로 실시간 반영 불안정 시 재연결 시도. 
+## Use case #17: 오픈 스터디룸 입장 (Enter Open Study Room)
+**Summary**  
+오픈 스터디룸 목록 조회, 생성, 참여, 삭제 등의 공개 스터디 활동을 관리한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+오픈 스터디룸 메뉴 클릭
+
+**Main success scenario**
+1. 목록 조회
+2. 방 생성/참여/삭제 등 수행
+3. 활동 완료 후 페이지 이탈
+
+**Extensions**
+- 생성/참여/삭제 실패 시 에러 처리
 
 ---
 
-### Use Case #22–26: Checklist (Create / Edit / View / Delete / Manage)
-- **Summary**  
-  체크리스트를 생성·수정·조회·삭제하여 개인 목표 관리를 지원한다. 
-- **Actors**: User  
-- **Preconditions**: 로그인 상태  
-- **Triggers**: 체크리스트 메뉴 진입 / 생성/수정/삭제 버튼 클릭  
-- **Key Flows**
-  - **Create**: 날짜 선택 → 내용 입력(최소 1글자) → 저장 → 달력에 표시(색상 표시).  
-  - **Edit**: 기존 항목 선택 → 수정 → 저장.  
-  - **View**: 날짜 선택 시 오른쪽에 체크리스트 출력.  
-  - **Delete**: 항목 선택 → 삭제 → DB 반영(최종 확인 다이얼로그 포함).
-- **Extensions**
-  - 내용 미입력 시 경고.  
-  - 삭제 시 최종 확인 요구. 
+## Use case #18: 오픈 스터디룸 만들기 (Create Open Study Room)
+**Summary**  
+조건을 설정해 공개 스터디 방을 생성한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+방 만들기 진입
+
+**Main success scenario**
+1. 필수 항목 입력(제목, 분야, 인원 등)
+2. 검증 성공 시 방 저장 및 즉시 목록에 표시
+3. 생성자에게 방장 권한 부여 및 입장
+
+**Extensions**
+- 필수 항목 누락 → 생성 거부
 
 ---
 
-### Use Case #27–33: Group Study (Group Rooms, Create, Join, End, Members, Lists)
-- **Summary**  
-  그룹 기반 스터디룸 생성/참여/관리(그룹 멤버 관리, 시간 지정 자동 종료 등). 
-- **Actors**: User (Group Member), Group Admin/Leader  
-- **Preconditions**: 로그인 및 그룹 소속  
-- **Triggers**: 그룹 스터디 메뉴 진입 / 방 만들기 / 참여 등  
-- **Key Flows**
-  - 그룹 스터디 방 생성 시 방 정보(그룹 선택, 시간, 인원 등) 입력 → 생성자 자동 입장.  
-  - 설정된 공부 시간이 종료되면 자동 종료 및 강제 퇴장.  
-  - 그룹 멤버 조회 및 초대(초대 링크) / 멤버 추방(방장 권한) 등. 
-- **Extensions**
-  - 그룹 삭제는 방장 외 다른 멤버가 없을 경우만 허용.  
-  - 다중 그룹 소속 시 필터링 기능 제공. 
+## Use case #19: 오픈 스터디 방 목록 조회 (List Open Study Rooms)
+**Summary**  
+생성된 오픈 스터디룸 목록을 카드 형태로 실시간 표시한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+오픈 스터디룸 페이지 진입
+
+**Main success scenario**
+1. DB에서 방 목록 조회
+2. 카드 형태로 표시(참여인원, 분야 등)
+3. 실시간 업데이트 반영
+
+**Extensions**
+- 필터/검색 기능
+- 실시간 업데이트 실패 시 수동 새로고침 안내
 
 ---
 
-### Use Case #34: Video Connection
-- **Summary**  
-  스터디룸 내에서 사용자가 화상 연결(카메라)을 켜고 끌 수 있으며, 모든 참여자에게 해당 상태가 실시간으로 반영된다.
-- **Actor**: User  
-- **Preconditions**: 스터디룸에 입장한 상태, 카메라 권한 허용  
-- **Trigger**: 화상 연결(ON/OFF) 버튼 클릭  
-- **Main Success Scenario**
-  1. 사용자가 화상 연결 버튼을 누른다(ON).  
-  2. 클라이언트가 카메라 장치를 활성화하고 영상 스트림을 서버/피어에 연결한다.  
-  3. 시스템은 해당 사용자의 카메라 상태(ON)를 다른 참여자들에게 실시간으로 전파한다.  
-  4. 다른 참여자들의 화면에 해당 사용자의 영상이 정상적으로 출력된다.  
-- **Extension Scenarios**
-  - 카메라 장치 미인식 또는 권한 거부 시 오류 메시지 표시 및 사용자가 재시도하도록 안내.  
-  - 네트워크 품질 저하 시 영상 화질 저하 또는 자동으로 비디오 전송을 중단하고 상태 아이콘으로 표시.
+## Use case #20: 오픈 스터디 방 참여 (Join Open Study Room)
+**Summary**  
+목록에서 방을 선택하여 입장한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+참여 버튼 클릭
+
+**Main success scenario**
+1. 정원/삭제 여부/중복 참여 확인
+2. 조건 충족 시 멤버로 추가 및 입장
+3. 참여자 수 자동 증가
+
+**Extensions**
+- 정원 초과 → 입장 불가
+- 이미 삭제된 방 → 에러
 
 ---
 
-### Use Case #35: Participant List Check
-- **Summary**  
-  스터디룸에 현재 입장해 있는 참여자 목록과 각 참여자의 상태(카메라/마이크/타이머 상태 등)를 확인한다.
-- **Actor**: User  
-- **Preconditions**: 스터디룸에 입장한 상태  
-- **Trigger**: 참여자 목록 버튼 클릭 또는 참여자 변동 이벤트 수신  
-- **Main Success Scenario**
-  1. 사용자가 참여자 목록을 요청한다.  
-  2. 서버는 현재 방에 접속한 모든 참여자의 최신 정보를 반환한다(닉네임, 프로필, 상태 등).  
-  3. 클라이언트는 목록을 UI에 표시하고, 각 참여자의 상태를 실시간 업데이트한다.  
-- **Extension Scenarios**
-  - 실시간 동기화 오류 발생 시 “일시적으로 목록을 불러올 수 없습니다” 표시 및 재시도 버튼 제공.  
-  - 참여자 개인정보 설정(비공개)으로 일부 정보가 제한되어 있을 경우 해당 항목을 숨김 처리.
+## Use case #21: 오픈 스터디 방 삭제 (Auto Delete Open Room)
+**Summary**  
+참여자가 없는 방을 자동으로 감지해 삭제한다(시간 기준 등).
+
+**Primary Actor**  
+System / User
+
+**Preconditions**  
+해당 방이 생성되어 있어야 함
+
+**Trigger**  
+빈방 상태 또는 특정 시간 경과 등 트리거 발생
+
+**Main success scenario**
+1. 삭제 조건 감지
+2. 사전 안내(타이머) 후 삭제
+3. 목록에서 제거
+
+**Extensions**
+- 타이머 중 다른 참여자 입장 → 삭제 취소/안내
 
 ---
 
-### Use Case #36: Participation Time Check
-- **Summary**  
-  사용자가 특정 스터디 세션에서 자신 또는 다른 참여자의 누적 참여 시간 및 현재 세션의 경과 시간을 확인한다.
-- **Actor**: User / Admin  
-- **Preconditions**: 스터디룸 입장 및 타이머/세션 기록 활성화  
-- **Trigger**: 참여 시간 조회 요청 또는 세션 종료 시 자동 계산  
-- **Main Success Scenario**
-  1. 사용자가 ‘참여 시간 보기’ 요청을 한다.  
-  2. 시스템은 DB/캐시에서 해당 사용자의 누적 참여 시간 및 현재 세션 경과 시간을 조회한다.  
-  3. 조회 결과를 UI에 표시(분/초 단위, 누적 합계 포함).  
-- **Extension Scenarios**
-  - 데이터 미수집 또는 동기화 지연 시 “참여 시간 데이터를 불러올 수 없습니다” 알림.  
-  - 관리자 권한으로 전체 참여자 통계를 조회할 때 권한 검사 실패 시 접근 차단.
+## Use case #22: 오픈스터디 방 화상연결 (Open Room Video)
+**Summary**  
+스튜디오룸 내 화상 연결 ON/OFF 제어 및 실시간 반영.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 방 입장 상태
+
+**Trigger**  
+카메라 버튼 클릭
+
+**Main success scenario**
+1. 기본값(OFF) 설정
+2. 사용자 토글 시 상태 변경 및 실시간 전파
+3. ON: 영상 송출, OFF: 닉네임/프로필 표시
+
+**Extensions**
+- 장치 인식 실패 → 에러 메시지
+- 네트워크 지연 → 연결 불안정 표시
 
 ---
 
-### Use Case #37: Timer Setting & Notification
-- **Summary**  
-  스터디룸에서 타이머(공부/휴식 시간)를 설정하고 타이머 상태 변경 시 알림을 발송한다.
-- **Actor**: User (방장 권한 또는 참가자)  
-- **Preconditions**: 스터디룸 입장, 타이머 기능 활성화  
-- **Trigger**: 타이머 설정/시작/중지/리셋 액션  
-- **Main Success Scenario**
-  1. 사용자가 타이머 설정(공부 시간/휴식 시간, 반복 여부 등)을 입력하고 시작한다.  
-  2. 타이머는 서버 또는 분산 동기화 방식으로 모든 참여자에게 동기화된다.  
-  3. 타이머 완료 또는 상태 변경 시 시스템이 실시간 알림(팝업/사운드/상태메시지)을 전송한다.  
-- **Extension Scenarios**
-  - 네트워크 분리로 인한 비동기 발생 시 재동기화 로직 실행 및 경고 메시지 출력.  
-  - 사용자가 알림 수신을 해제한 경우 시각적 표시만 수행하고 푸시/사운드는 생략.
+## Use case #23: 에러 처리 및 로깅 (Error Handling & Logging)
+**Summary**  
+시스템 오류 및 예외를 탐지하고 적절히 처리·로깅한다.
+
+**Primary Actor**  
+System
+
+**Trigger**  
+네트워크/서버/권한 등 예외 발생
+
+**Main success scenario**
+1. 에러 탐지
+2. 로그 준비 및 기록(중앙 또는 로컬)
+3. 사용자에게 적절한 피드백 제공
+4. 정상 상태로 복구 시도
+
+**Extensions**
+- 로깅 정보 획득 실패 → 최소 정보 저장
+- 중앙 로깅 통신 실패 → 로컬 저장/재시도 큐
 
 ---
 
-### Use Case #38: Study/Break Mode Switch
-- **Summary**  
-  방장 또는 사용자가 공부 모드와 휴식 모드 간 전환을 수행하여, 방 전체의 상태와 타이머 동작을 변경한다.
-- **Actor**: User (방장 우선, 일반 참가자)  
-- **Preconditions**: 타이머가 설정되어 있거나 모드 전환 권한 부여  
-- **Trigger**: ‘공부 모드’ 또는 ‘휴식 모드’ 전환 버튼 클릭 / 타이머 자동 전환  
-- **Main Success Scenario**
-  1. 모드 전환 요청 수신(수동 또는 타이머에 의한 자동 전환).  
-  2. 서버는 새로운 모드 상태를 저장하고 모든 클라이언트에 전파한다.  
-  3. 클라이언트 UI는 모드에 맞게 표시(타이머, 배경, 알림 등)하고 관련 이벤트를 트리거한다.  
-- **Extension Scenarios**
-  - 권한이 없는 사용자의 강제 전환 시 서버에서 거부 및 경고 표시.  
-  - 모드 전환 중 데이터 충돌이 발생하면 최근 상태 우선 정책으로 해결 또는 사용자에게 수동 선택 요청.
+## Use case #24: 그룹스터디 방 입장 (Enter Group Study Room)
+**Summary**  
+그룹 소속 사용자가 그룹 기반 스터디 방을 생성/참여/관리한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 그룹 소속
+
+**Trigger**  
+그룹 스터디 메뉴 클릭
+
+**Main success scenario**
+1. 소속 그룹의 방 목록 표시
+2. 생성/참여/멤버 확인 등 수행
+
+**Extensions**
+- 권한 오류/접근 실패 → 에러
 
 ---
 
-### Use Case #39: Email Verification
-- **Summary**  
-  회원가입 또는 이메일 변경 시 사용자의 이메일 주소 유효성을 검증하기 위해 인증 메일을 발송하고 확인 절차를 수행한다.
-- **Actor**: User / System (메일 발송 서비스)  
-- **Preconditions**: 유효한 이메일 주소 입력, 메일 발송 서비스 정상 동작  
-- **Trigger**: 회원가입 완료 또는 이메일 변경 요청 시 인증 메일 발송  
-- **Main Success Scenario**
-  1. 시스템이 사용자 이메일로 고유 인증 링크(또는 코드)를 발송한다.  
-  2. 사용자가 메일의 링크 클릭 또는 인증 코드 입력으로 인증을 수행한다.  
-  3. 인증 성공 시 계정 상태를 ‘이메일 인증 완료’로 갱신한다.  
-- **Extension Scenarios**
-  - 메일 전송 실패(서버/SMTP 오류) 시 재전송 옵션 제공 및 사용자에게 안내.  
-  - 인증 링크 만료 시 “인증 링크가 만료되었습니다” 메시지와 재요청 방법 제시.
+## Use case #25: 그룹스터디 방 생성 및 종료 (Create/End Group Study)
+**Summary**  
+그룹에 속한 사용자가 방 생성, 설정된 시간 종료 시 방을 자동 종료한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 그룹 소속
+
+**Trigger**  
+그룹 스터디에서 방 만들기 클릭
+
+**Main success scenario**
+1. 필수 정보 입력(인원, 분야, 공부시간 등)
+2. 성공 시 생성자 입장
+3. 공부시간 종료 시 자동 종료 및 퇴장
+
+**Extensions**
+- 제목 미입력/필수항목 누락 → 에러
 
 ---
 
-### Use Case #40: Error Handling & Logging
-- **Summary**  
-  시스템에서 발생하는 오류를 적절히 처리하고, 모든 중요 이벤트와 오류를 로그로 남겨 추후 분석 및 복구에 활용한다.
-- **Actor**: System / Admin / User (간접)  
-- **Preconditions**: 로깅 시스템(파일/DB/외부 모니터링) 구성  
-- **Trigger**: 예외 발생(네트워크 오류, DB 오류, 인증 실패 등)  
-- **Main Success Scenario**
-  1. 오류 발생 시 애플리케이션은 예외를 포착하고 사용자에게 적절한 오류 메시지를 표시한다(보안상 민감 정보 제외).  
-  2. 동일 이벤트를 로깅 시스템에 기록(타임스탬프, 사용자, 에러 코드, 스택트레이스 등).  
-  3. 관리자 대시보드에서 로그 조회 및 필터링, 알림 설정이 가능하다.  
-- **Extension Scenarios**
-  - 로그 저장 실패 시 임시 저장소로 백업 후 재저장 시도.  
-  - 치명적 오류 발생 시 자동 알림(관리자 이메일/슬랙 등)을 전송하고, 장애 대응 프로세스를 트리거.
+## Use case #26: 그룹 생성 (Create Group)
+**Summary**  
+새 그룹을 생성하고 권한을 설정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 상태
+
+**Trigger**  
+그룹 만들기 버튼 클릭
+
+**Main success scenario**
+1. 그룹명 입력
+2. DB 등록 및 생성자에게 방장 권한 부여
+
+**Extensions**
+- 이름 미입력/중복 → 에러
 
 ---
 
+## Use case #27: 그룹 삭제 (Delete Group)
+**Summary**  
+그룹장이 자신이 만든 그룹을 영구 삭제한다(멤버 없어야 함).
 
-## Appendix: Summary Table (간단 요약)
+**Primary Actor**  
+Group Owner
 
-| # | Use Case (Title) | Actor | 핵심 동작 |
-|---:|-------------------|-------|-----------|
-| 1 | Sign Up | User | 회원가입(정보 입력, 중복검사) |
-| 2 | Login | User | 인증 → 리디렉션 |
-| 3 | Logout | User | 세션 종료 |
-| 4 | Register Status | User | 상태 메시지 등록 |
-| 5 | Friend Invite | User | 초대 URL 생성/공유 |
-| 6 | My Profile | User | 조회/수정 |
-| 7 | Write Intro | User | 자기소개 작성(200자) |
-| 8 | Display Basic Info | User | ID/Email/Age 표시 |
-| 9 | Study Fields | User | 관심 분야 선택 |
-|10 | Profile Picture | User | 사진 업로드 |
-|11 | Account Settings | User | 비밀번호/이메일/탈퇴 등 |
-|12 | Change Password | User | 비밀번호 교체 |
-|13 | Change ID | User | 아이디 변경 |
-|14 | Delete Account | User | 계정 탈퇴 |
-|15 | Notification Settings | User | 알림 설정 |
-|16–20 | Open Room (create/list/join/delete) | User | 공개 스터디 관리 |
-|21 | Video Connection | User | 화상 ON/OFF |
-|22–26 | Checklist | User | 체크리스트 CRUD |
-|27–33 | Group Study | Group Member/Admin | 그룹 스터디 관리 |
-| 34 | Video Connection | User | 화상 연결(카메라 ON/OFF) 제어 및 상태 실시간 반영 |
-| 35 | Participant List Check | User | 스터디룸 내 참여자 목록 및 상태 정보 확인 |
-| 36 | Participation Time Check | User / Admin | 각 사용자별 누적 참여 시간 및 세션 시간 조회 |
-| 37 | Timer Setting & Notification | User | 공부/휴식 타이머 설정 및 완료 알림 전송 |
-| 38 | Study/Break Mode Switch | User | 공부 모드 ↔ 휴식 모드 전환 및 UI/타이머 연동 |
-| 39 | Email Verification | User / System | 회원가입·이메일 변경 시 인증 메일 발송 및 검증 |
-| 40 | Error Handling & Logging | System / Admin | 예외 발생 시 처리 및 시스템 로그 기록 관리 |
+**Preconditions**  
+로그인 및 방장 권한, 그룹 내 다른 멤버 없어야 함
+
+**Trigger**  
+그룹 삭제 버튼 클릭
+
+**Main success scenario**
+1. 삭제 전 확인 절차
+2. 최종 동의 시 그룹 영구 삭제
+
+**Extensions**
+- 다른 멤버 존재 시 삭제 거부
+
+---
+
+## Use case #28: 그룹 멤버 확인 (Check Group Members)
+**Summary**  
+그룹의 멤버 목록 조회, 초대 링크 발급, 멤버 추방 등 관리 기능.
+
+**Primary Actor**  
+Group Owner / User
+
+**Preconditions**  
+로그인 및 그룹 스터디 페이지 접근
+
+**Trigger**  
+그룹 멤버 확인 메뉴 클릭
+
+**Main success scenario**
+1. 멤버 리스트 표시
+2. 초대 링크 복사 및 발급
+3. 초대 수락 시 자동 멤버 추가
+
+**Extensions**
+- 추방 시 확인 절차
+- 초대 발급 오류 → 에러
+
+---
+
+## Use case #29: 그룹스터디 목록 조회 (Group Study List)
+**Summary**  
+사용자가 소속된 그룹의 스터디 방 목록을 조회한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 그룹 소속
+
+**Trigger**  
+그룹 스터디 목록 메뉴 클릭
+
+**Main success scenario**
+1. 자신이 속한 그룹의 스터디 목록만 표시
+2. 카드 형태로 핵심 정보 제공
+
+**Extensions**
+- 다중 그룹 소속 시 필터링
+- 참여 인원 초과 방 표시
+
+---
+
+## Use case #30: 그룹스터디 참여 및 종료 (Join/End Group Study)
+**Summary**  
+그룹 스터디에 입장하고 설정된 시간 종료 시 자동 퇴장한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 방 존재
+
+**Trigger**  
+참여 버튼 클릭 또는 시간 종료
+
+**Main success scenario**
+1. 입장 요청 및 멤버 확인
+2. 입장 성공
+3. 설정된 시간이 종료되면 자동 퇴장
+
+**Extensions**
+- 네트워크 오류 → 참여 실패
+- 비멤버 접근 시 차단
+
+---
+
+## Use case #31: 그룹스터디 화상연결 (Group Study Video)
+**Summary**  
+그룹 스터디 내에서 화상 연결을 제어한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 그룹 방 입장
+
+**Trigger**  
+카메라 버튼 클릭
+
+**Main success scenario**
+1. 기본값 OFF
+2. 토글 시 실시간 상태 반영
+3. ON: 영상 송출 / OFF: 닉네임 표시
+
+**Extensions**
+- 장치 인식 오류 → 에러
+
+---
+
+## Use case #32: 참여자 목록 확인 (View Participants)
+**Summary**  
+현재 스터디방에 접속한 참여자 목록을 확인한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+방에 입장해 있어야 함
+
+**Trigger**  
+참여자 목록 요청
+
+**Main success scenario**
+1. 현재 접속 중인 참여자 목록 표시
+2. 프로필/상태 메시지 등 함께 표시
+
+**Extensions**
+- 목록 로드 실패 → 오류 메시지
+
+---
+
+## Use case #33: 그룹스터디 참여 시간 확인 (Check Participation Time)
+**Summary**  
+사용자가 스터디룸에 머문 시간을 조회한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 방 접속
+
+**Trigger**  
+참여 시간 확인 요청
+
+**Main success scenario**
+1. 입장 시점부터 현재까지 시간 계산
+2. 화면에 표시(분 단위 자동 갱신 가능)
+
+**Extensions**
+- 시간 계산 오류 → 오류 안내
+
+---
+
+## Use case #34: 공부/휴식 모드 전환 (Study/Break Mode)
+**Summary**  
+사용자가 공부 또는 휴식 모드로 상태를 전환하여 다른 참여자에게 표시한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 방 접속
+
+**Trigger**  
+모드 토글 또는 타이머에 의한 자동 전환
+
+**Main success scenario**
+1. 모드 변경 시 실시간 반영
+2. 타이머 연동 시 자동 전환
+
+**Extensions**
+- 동기화 문제 발생 시 연결 재시도
+
+---
+
+## Use case #35: 참여자 목록 확인(상세) (Participant List Details)
+**Summary**  
+참여자의 상세 정보(닉네임, 상태, 참여 시간 등)를 확인한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+방 접속
+
+**Trigger**  
+참여자 목록 열람
+
+**Main success scenario**
+1. 각 참여자에 대한 상세 정보 표시
+
+**Extensions**
+- 개인정보 표시 제한에 따른 비공개 처리
+
+---
+
+## Use case #36: 참여 시간 표시 (Show Participation Time)
+**Summary**  
+각 참여자의 참여 시간을 표시한다.
+
+**Primary Actor**  
+System / User
+
+**Preconditions**  
+방 입장 기록 존재
+
+**Trigger**  
+참여자 목록 로드
+
+**Main success scenario**
+1. 입장 시각 기반으로 머문 시간 계산 후 표시
+
+**Extensions**
+- 동기화 문제로 임시 값 표시
+
+---
+
+## Use case #37: 타이머 설정 및 알림 (Timer & Alerts)
+**Summary**  
+공부/휴식 타이머 설정과 완료 시 알림 제공.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+방 접속
+
+**Trigger**  
+타이머 설정 또는 시작
+
+**Main success scenario**
+1. 타이머 설정 및 시작
+2. 완료 시 알림(음성/팝업) 전송
+
+**Extensions**
+- 네트워크 지연 시 재동기화
+
+---
+
+## Use case #38: 공부/휴식 모드 자동화 (Auto Mode via Timer)
+**Summary**  
+타이머에 따라 공부/휴식 모드를 자동 전환한다.
+
+**Primary Actor**  
+System
+
+**Preconditions**  
+타이머 설정
+
+**Trigger**  
+타이머 만료
+
+**Main success scenario**
+1. 모드 자동 전환 및 실시간 반영
+
+**Extensions**
+- 재동기화 실패 시 사용자 수동 전환 필요
+
+---
+
+## Use case #39: 이메일 인증(가입/변경/비밀번호 찾기) - (Email Auth) *(partial, see #44)*  
+**Summary**  
+이메일 기반 인증이 필요한 흐름에서 코드 또는 링크를 발송하여 소유권을 검증한다.
+
+(세부 흐름은 #44 이메일 인증에 상세 기술)
+
+---
+
+## Use case #40: 체크 리스트 생성 (Create Checklist)
+**Summary**  
+특정 날짜에 체크리스트를 생성해 개인 목표를 설정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+로그인 및 체크리스트 관리 페이지 접근
+
+**Trigger**  
+생성 버튼 클릭
+
+**Main success scenario**
+1. 날짜 선택 후 생성
+2. 내용 작성 및 저장 → 달력 반영
+
+**Extensions**
+- 내용 미입력 → 저장 거부
+
+---
+
+## Use case #41: 체크 리스트 수정 (Edit Checklist)
+**Summary**  
+작성된 체크리스트를 수정한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+수정할 체크리스트 존재
+
+**Trigger**  
+수정 버튼 클릭
+
+**Main success scenario**
+1. 날짜 선택 및 수정 창 오픈
+2. 수정 후 저장 → DB 반영
+
+**Extensions**
+- 수정할 체크리스트 없음 → 안내
+- 수정 내용 미입력 → 안내
+
+---
+
+## Use case #42: 체크 리스트 조회 (View Checklist)
+**Summary**  
+작성된 체크리스트를 조회한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+체크리스트 존재
+
+**Trigger**  
+조회 요청
+
+**Main success scenario**
+1. 해당 날짜의 체크리스트 표시
+
+**Extensions**
+- 조회 실패 → 에러 안내
+
+---
+
+## Use case #43: 체크 리스트 삭제 (Delete Checklist)
+**Summary**  
+선택한 체크리스트를 삭제한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**  
+삭제할 체크리스트 선택
+
+**Trigger**  
+삭제 버튼 클릭
+
+**Main success scenario**
+1. 삭제 대상 선택
+2. 최종 확인 다이얼로그
+3. 삭제 시 DB에서 제거 및 목록 갱신
+
+**Extensions**
+- 삭제할 항목 없음 → 버튼 비활성화
+- 삭제 취소 → 변경 없음
+
+---
+
+## Use case #44: 이메일 인증 (Email Verification)
+**Summary**  
+입력한 이메일 주소의 유효성 및 소유권을 확인하기 위해 인증 코드 또는 링크를 발송하고 확인한다.
+
+**Primary Actor**  
+User
+
+**Preconditions**
+- 인증할 이메일 주소 입력
+- 시스템이 해당 주소로 메일 발송 가능 상태
+
+**Trigger**
+- 회원가입, 이메일 변경, 비밀번호 찾기 등 이메일 인증 필요 시
+
+**Main success scenario**
+1. 사용자가 인증 요청 이메일 주소 입력
+2. 시스템이 유효기간이 설정된 인증 코드 발송
+3. 사용자에게 코드 입력 필드 제공
+4. 사용자가 이메일에서 코드 확인 후 입력 및 확인 클릭
+5. 시스템이 코드 일치 검증
+6. 검증 성공 시 "이메일 인증 완료" 메시지 표시
+
+**Extensions**
+- 이메일 발송 실패 → 발송 실패 메시지 표시(주소 확인 요청).
+- 인증 코드 불일치 → 오류 메시지 표시.
+- 링크/코드 만료 → 만료 안내 및 재발송 옵션 제공.
+
+
+
+
