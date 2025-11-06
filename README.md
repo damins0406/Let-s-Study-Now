@@ -1,4 +1,9 @@
 # 📚 Let's Study Now
+
+<p align="center">
+  <img src="logo.svg" alt="Let's Study Now! Logo" width="400"/>
+</p>
+
 즉석 스터디 그룹 매칭 웹사이트  
 실시간으로 스터디 그룹을 매칭해주는 웹사이트입니다.  
 언제든지 접속해서 다른 사람들과 함께 공부할 수 있는 환경을 제공합니다. ✨  
