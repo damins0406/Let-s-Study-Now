@@ -21,113 +21,110 @@ stateDiagram-v2
         Idle --> GroupStudy : Click GroupStudy
     }
 
-    %% 5.2.1 MyPage
+    %% MyPage
     state MyPage {
         [*] --> ShowUserInfo
-        ShowUserInfo --> UploadProfilePicture : Click UploadProfilePicture
-        ShowUserInfo --> SelectStudyField : Click SelectStudyField
-        ShowUserInfo --> WriteIntroduction : Click WriteIntroduction
-        ShowUserInfo --> AccountSettings : Click AccountSettings
+        ShowUserInfo --> UploadProfilePicture : Upload Profile
+        ShowUserInfo --> SelectStudyField : Select Study Field
+        ShowUserInfo --> WriteIntroduction : Write Introduction
+        ShowUserInfo --> AccountSettings : Account Settings
 
         state AccountSettings {
             [*] --> Default
-            Default --> ChangeEmail : Click ChangeEmail
-            Default --> ChangePassword : Click ChangePassword
-            Default --> DeleteAccount : Click DeleteAccount
-            Default --> SetNotifications : Click SetNotifications
-            ChangeEmail --> Default : Done
-            ChangePassword --> Default : Done
-            DeleteAccount --> [*] : Account Deleted
-            SetNotifications --> Default : Saved
+            Default --> ChangeEmail : Change Email
+            Default --> ChangePassword : Change Password
+            Default --> DeleteAccount : Delete Account
+            Default --> SetNotifications : Set Notifications
+            ChangeEmail --> Default
+            ChangePassword --> Default
+            SetNotifications --> Default
         }
 
-        UploadProfilePicture --> ShowUserInfo : Done
-        SelectStudyField --> ShowUserInfo : Done
-        WriteIntroduction --> ShowUserInfo : Done
-        AccountSettings --> ShowUserInfo : Back
-        ShowUserInfo --> MainPage : Back to Main
+        UploadProfilePicture --> ShowUserInfo
+        SelectStudyField --> ShowUserInfo
+        WriteIntroduction --> ShowUserInfo
+        AccountSettings --> ShowUserInfo
+        note right of MyPage : (Return to MainPage)
     }
 
-    %% 5.2.2 OpenStudy
+    %% OpenStudy
     state OpenStudy {
         [*] --> ViewOpenStudyList
-        ViewOpenStudyList --> CreateOpenStudy : Click CreateOpenStudy
-        ViewOpenStudyList --> JoinOpenStudy : Click JoinOpenStudy
-        CreateOpenStudy --> ViewOpenStudyList : Created
-        JoinOpenStudy --> OpenStudyRoom : Joined
-        OpenStudyRoom --> [*] : Leave
+        ViewOpenStudyList --> CreateOpenStudy : Create
+        ViewOpenStudyList --> JoinOpenStudy : Join
+        CreateOpenStudy --> ViewOpenStudyList
+        JoinOpenStudy --> OpenStudyRoom
+        note right of OpenStudy : (Return to MainPage)
     }
 
-    %% 5.2.3 Group
+    %% Group
     state Group {
         [*] --> ViewGroupList
-        ViewGroupList --> CreateGroup : Click CreateGroup
-        ViewGroupList --> DeleteGroup : Click DeleteGroup
-        CreateGroup --> ViewGroupList : Created
-        DeleteGroup --> ViewGroupList : Deleted
-        ViewGroupList --> MainPage : Back
+        ViewGroupList --> CreateGroup : Create
+        ViewGroupList --> DeleteGroup : Delete
+        CreateGroup --> ViewGroupList
+        DeleteGroup --> ViewGroupList
+        note right of Group : (Return to MainPage)
     }
 
-    %% 5.2.4 CheckList
+    %% CheckList
     state CheckList {
         [*] --> ViewCheckList
-        ViewCheckList --> CreateCheckList : Click Create
-        ViewCheckList --> EditCheckList : Click Edit
-        ViewCheckList --> DeleteCheckList : Click Delete
-        CreateCheckList --> ViewCheckList : Done
-        EditCheckList --> ViewCheckList : Done
-        DeleteCheckList --> ViewCheckList : Done
-        ViewCheckList --> MainPage : Back
+        ViewCheckList --> CreateCheckList : Create
+        ViewCheckList --> EditCheckList : Edit
+        ViewCheckList --> DeleteCheckList : Delete
+        CreateCheckList --> ViewCheckList
+        EditCheckList --> ViewCheckList
+        DeleteCheckList --> ViewCheckList
+        note right of CheckList : (Return to MainPage)
     }
 
-    %% 5.3 GroupStudy
+    %% GroupStudy
     state GroupStudy {
         [*] --> ViewGroupStudyList
-        ViewGroupStudyList --> SendIRL : Click SendIRL
-        ViewGroupStudyList --> CreateGroupStudy : Click CreateGroupStudy
-        ViewGroupStudyList --> JoinGroupStudy : Click JoinGroupStudy
-        ViewGroupStudyList --> RemoveGroupMember : Click RemoveGroupMember
+        ViewGroupStudyList --> SendIRL : Send Invite
+        ViewGroupStudyList --> CreateGroupStudy : Create
+        ViewGroupStudyList --> JoinGroupStudy : Join
+        ViewGroupStudyList --> RemoveGroupMember : Remove Member
 
-        CreateGroupStudy --> ViewGroupStudyList : Created
-        SendIRL --> ViewGroupStudyList : Sent
-        RemoveGroupMember --> ViewGroupStudyList : Removed
-        JoinGroupStudy --> GroupStudyRoom : Joined
-        GroupStudyRoom --> [*] : Session End
+        CreateGroupStudy --> ViewGroupStudyList
+        SendIRL --> ViewGroupStudyList
+        RemoveGroupMember --> ViewGroupStudyList
+        JoinGroupStudy --> GroupStudyRoom
+        note right of GroupStudy : (Return to MainPage)
     }
 
-    %% 5.4 Study Room
+    %% OpenStudyRoom
     state OpenStudyRoom {
         [*] --> JoinVideoSession
         JoinVideoSession --> CheckParticipationTime
-        CheckParticipationTime --> ViewParticipantList : Click Participant List
-        ViewParticipantList --> SetStatusMessage : Click Status Message
-        SetStatusMessage --> StudyCycleRepeatTimer : Set Complete
+        CheckParticipationTime --> ViewParticipantList : View Participants
+        ViewParticipantList --> SetStatusMessage : Set Status
+        SetStatusMessage --> StudyCycleRepeatTimer
 
         state StudyCycleRepeatTimer {
             [*] --> Idle
-            Idle --> SetStudyTime : Click SetStudyTime
-            SetStudyTime --> SetBreakTime : Done
-            SetBreakTime --> Ready : Done
-            Ready --> Study : Click On
+            Idle --> SetStudyTime : Set Study
+            SetStudyTime --> SetBreakTime : Set Break
+            SetBreakTime --> Ready
+            Ready --> Study : Start
             Study --> Break : Study Timeout
             Break --> Study : Break Timeout
-            Study --> Off : Click Off
-            Break --> Off : Click Off
+            Study --> Off : Stop
+            Break --> Off : Stop
             Off --> [*]
         }
 
-        StudyCycleRepeatTimer --> SetStudyBreakMode : Manual Switch
-        SetStudyBreakMode --> StudyCycleRepeatTimer : Back
-        OpenStudyRoom --> [*] : Click Leave
+        note right of OpenStudyRoom : Leave = End Session
     }
 
-    %% 5.4.2 GroupStudyRoom
+    %% GroupStudyRoom
     state GroupStudyRoom {
         [*] --> JoinVideoSession
         JoinVideoSession --> CheckParticipationTime
-        CheckParticipationTime --> ViewParticipantList : Click Participant List
-        ViewParticipantList --> SetStatusMessage : Click Status Message
-        SetStatusMessage --> GroupStudyTimer : Set Complete
+        CheckParticipationTime --> ViewParticipantList
+        ViewParticipantList --> SetStatusMessage
+        SetStatusMessage --> GroupStudyTimer
 
         state GroupStudyTimer {
             [*] --> Study
@@ -136,7 +133,7 @@ stateDiagram-v2
             Study --> [*] : Session End
         }
 
-        GroupStudyRoom --> [*] : Timeout Exit
+        note right of GroupStudyRoom : Timeout = Auto Exit
     }
 
     %% 메인 흐름 연결
