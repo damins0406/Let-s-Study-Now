@@ -1,16 +1,10 @@
-// API 기본 설정 및 유틸리티
+// src/lib/api.ts
+
+// ✅ API 기본 설정
 const API_BASE_URL =
-  import.meta.env.REACT_APP_API_BASE_URL || "http://localhost:8080";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-// 토큰 관리
-export const tokenManager = {
-  getToken: () => localStorage.getItem("accessToken"),
-  setToken: (token: string) => localStorage.setItem("accessToken", token),
-  removeToken: () => localStorage.removeItem("accessToken"),
-  isAuthenticated: () => !!localStorage.getItem("accessToken"),
-};
-
-// API 요청 헬퍼
+// ✅ 공통 API 클라이언트
 class ApiClient {
   private baseURL: string;
 
@@ -23,14 +17,18 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    const token = tokenManager.getToken();
+
+    // ✅ FormData면 Content-Type 자동 설정 안 함 (브라우저가 boundary 붙임)
+    const isFormData = options.body instanceof FormData;
 
     const config: RequestInit = {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
+      headers: isFormData
+        ? options.headers
+        : {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+      credentials: "include", // ✅ 쿠키 자동 전송 (세션 기반 인증 필수)
       ...options,
     };
 
@@ -38,8 +36,9 @@ class ApiClient {
       const response = await fetch(url, config);
 
       if (!response.ok) {
+        // 인증 실패 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
-          tokenManager.removeToken();
+          console.warn("세션이 만료되었습니다. 다시 로그인하세요.");
           window.location.href = "/login";
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -47,7 +46,7 @@ class ApiClient {
 
       const contentType = response.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
-        return await response.json();
+        return (await response.json()) as T;
       }
 
       return response.text() as unknown as T;
@@ -62,23 +61,26 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: "POST",
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: "PUT",
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
   async patch<T>(endpoint: string, data?: any): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: "PATCH",
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
@@ -89,7 +91,9 @@ class ApiClient {
 
 export const apiClient = new ApiClient(API_BASE_URL);
 
-// API 타입 정의
+//
+// ✅ 타입 정의
+//
 export interface User {
   id: string;
   username: string;
@@ -107,12 +111,15 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  username: string;
   email: string;
+  username: string;
   password: string;
+  checkPassword: string;
   age?: number;
-  studyFields?: string[];
+  profileImageFile?: File | string; // ✅ 파일 업로드 대응
+  studyField: string;
   bio?: string;
+  checkPw: boolean;
 }
 
 export interface StudyRoom {
@@ -144,26 +151,27 @@ export interface Checklist {
   createdAt: string;
 }
 
-// API 함수들
+//
+// ✅ API 함수들
+//
+
+// 🔐 인증 관련
 export const authAPI = {
-  login: (data: LoginRequest) =>
-    apiClient.post<{ token: string; user: User }>("/api/loginAct", data),
-  register: (data: RegisterRequest) =>
-    apiClient.post<{ message: string }>("/api/registerAct", data),
+  login: (data: LoginRequest) => apiClient.post<User>("/api/loginAct", data), // ✅ 세션 쿠키 저장
+  register: (data: RegisterRequest) => {
+    // ✅ 파일이 있을 경우 FormData 사용
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined && value !== null)
+        formData.append(key, value as any);
+    });
+    return apiClient.post<{ message: string }>("/api/registerAct", formData);
+  },
   getProfile: () => apiClient.get<User>("/api/profile"),
-  updateProfile: (data: Partial<User>) =>
-    apiClient.patch<User>("/api/update/profile", data),
-  updateEmail: (email: string) =>
-    apiClient.put<{ message: string }>("/api/update/email", { email }),
-  updatePassword: (currentPassword: string, newPassword: string) =>
-    apiClient.patch<{ message: string }>("/api/update/password", {
-      currentPassword,
-      newPassword,
-    }),
-  deleteAccount: () =>
-    apiClient.delete<{ message: string }>("/api/delete/account"),
+  logout: () => apiClient.post<{ message: string }>("/api/logoutAct"),
 };
 
+// 👥 그룹 관련
 export const groupAPI = {
   getAllGroups: () => apiClient.get<Group[]>("/api/groups"),
   getMyGroups: () => apiClient.get<Group[]>("/api/groups/my"),
@@ -184,6 +192,7 @@ export const groupAPI = {
     ),
 };
 
+// 🧠 오픈 스터디 관련
 export const openStudyAPI = {
   getRooms: () => apiClient.get<StudyRoom[]>("/api/open-study/rooms"),
   createRoom: (data: {
@@ -202,6 +211,7 @@ export const openStudyAPI = {
     ),
 };
 
+// 📚 그룹 스터디룸 관련
 export const studyRoomAPI = {
   getAllRooms: () => apiClient.get<StudyRoom[]>("/api/study-rooms"),
   createRoom: (data: {
@@ -223,6 +233,7 @@ export const studyRoomAPI = {
     apiClient.get<StudyRoom[]>(`/api/study-rooms/group/${groupId}`),
 };
 
+// ✅ 체크리스트 관련
 export const checklistAPI = {
   getChecklists: (date: string) =>
     apiClient.get<Checklist[]>(`/api/checklist?date=${date}`),

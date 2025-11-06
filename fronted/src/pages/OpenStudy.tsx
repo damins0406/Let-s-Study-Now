@@ -56,11 +56,10 @@ const OpenStudy: React.FC = () => {
     studyField: "",
   });
 
+  // ✅ 로그인 여부와 관계없이 방 목록 로드 (쿠키 기반이라 자동 인증됨)
   useEffect(() => {
-    if (user) {
-      loadRooms();
-    }
-  }, [user]);
+    loadRooms();
+  }, []);
 
   const loadRooms = async () => {
     setLoading(true);
@@ -78,6 +77,15 @@ const OpenStudy: React.FC = () => {
   };
 
   const handleCreateRoom = async () => {
+    if (!user) {
+      toast({
+        title: "로그인 필요",
+        description: "방을 생성하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newRoom.title || !newRoom.studyField) {
       toast({
         title: "오류",
@@ -139,6 +147,15 @@ const OpenStudy: React.FC = () => {
   };
 
   const handleJoinRoom = async (roomId: string) => {
+    if (!user) {
+      toast({
+        title: "로그인 필요",
+        description: "참여하려면 로그인이 필요합니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       await openStudyAPI.joinRoom(roomId);
@@ -156,24 +173,6 @@ const OpenStudy: React.FC = () => {
     }
     setLoading(false);
   };
-
-  /*if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center py-12">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle>로그인이 필요합니다</CardTitle>
-              <CardDescription>
-                오픈 스터디를 이용하려면 로그인해주세요
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  } */
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -197,178 +196,138 @@ const OpenStudy: React.FC = () => {
               새로고침
             </Button>
 
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />방 만들기
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>새 스터디 방 만들기</DialogTitle>
-                  <DialogDescription>
-                    오픈 스터디 방을 생성하여 다른 사용자들과 함께 공부하세요
-                  </DialogDescription>
-                </DialogHeader>
+            {user && (
+              <Dialog
+                open={createDialogOpen}
+                onOpenChange={setCreateDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />방 만들기
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>새 스터디 방 만들기</DialogTitle>
+                    <DialogDescription>
+                      오픈 스터디 방을 생성하여 다른 사용자들과 함께 공부하세요
+                    </DialogDescription>
+                  </DialogHeader>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="room-title">방 제목 *</Label>
-                    <Input
-                      id="room-title"
-                      placeholder="방 제목을 입력하세요 (1-30자)"
-                      value={newRoom.title}
-                      onChange={(e) =>
-                        setNewRoom((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      maxLength={30}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="room-description">방 설명</Label>
-                    <Textarea
-                      id="room-description"
-                      placeholder="방에 대한 설명을 입력하세요 (선택사항)"
-                      value={newRoom.description}
-                      onChange={(e) =>
-                        setNewRoom((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }))
-                      }
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="max-participants">최대 인원 *</Label>
-                      <Select
-                        value={newRoom.maxParticipants.toString()}
-                        onValueChange={(value) =>
+                      <Label htmlFor="room-title">방 제목 *</Label>
+                      <Input
+                        id="room-title"
+                        placeholder="방 제목을 입력하세요 (1-30자)"
+                        value={newRoom.title}
+                        onChange={(e) =>
                           setNewRoom((prev) => ({
                             ...prev,
-                            maxParticipants: parseInt(value),
+                            title: e.target.value,
                           }))
                         }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                            <SelectItem key={num} value={num.toString()}>
-                              {num}명
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        maxLength={30}
+                      />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="study-field">공부 분야 *</Label>
-                      <Select
-                        value={newRoom.studyField}
-                        onValueChange={(value) =>
-                          setNewRoom((prev) => ({ ...prev, studyField: value }))
+                      <Label htmlFor="room-description">방 설명</Label>
+                      <Textarea
+                        id="room-description"
+                        placeholder="방에 대한 설명을 입력하세요 (선택사항)"
+                        value={newRoom.description}
+                        onChange={(e) =>
+                          setNewRoom((prev) => ({
+                            ...prev,
+                            description: e.target.value,
+                          }))
+                        }
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="max-participants">최대 인원 *</Label>
+                        <Select
+                          value={newRoom.maxParticipants.toString()}
+                          onValueChange={(value) =>
+                            setNewRoom((prev) => ({
+                              ...prev,
+                              maxParticipants: parseInt(value),
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num}명
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="study-field">공부 분야 *</Label>
+                        <Select
+                          value={newRoom.studyField}
+                          onValueChange={(value) =>
+                            setNewRoom((prev) => ({
+                              ...prev,
+                              studyField: value,
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="선택하세요" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STUDY_FIELDS.map((field) => (
+                              <SelectItem key={field} value={field}>
+                                {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setCreateDialogOpen(false)}
+                      >
+                        취소
+                      </Button>
+                      <Button
+                        onClick={handleCreateRoom}
+                        disabled={
+                          loading || !newRoom.title || !newRoom.studyField
                         }
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="선택하세요" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STUDY_FIELDS.map((field) => (
-                            <SelectItem key={field} value={field}>
-                              {field}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        {loading ? "생성 중..." : "방 만들기"}
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCreateDialogOpen(false)}
-                    >
-                      취소
-                    </Button>
-                    <Button
-                      onClick={handleCreateRoom}
-                      disabled={
-                        loading || !newRoom.title || !newRoom.studyField
-                      }
-                    >
-                      {loading ? "생성 중..." : "방 만들기"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </div>
 
-        {/* 통계 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="w-8 h-8 text-blue-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">활성 방</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {rooms.filter((room) => room.isActive).length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ✅ 로그인 안한 경우 안내 메시지 추가 */}
+        {!user && (
+          <div className="text-center text-gray-500 mb-8">
+            로그인을 하면 스터디 방을 생성하거나 참여할 수 있습니다.
+          </div>
+        )}
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <BookOpen className="w-8 h-8 text-green-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">
-                    참여 가능한 방
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {
-                      rooms.filter(
-                        (room) =>
-                          room.currentParticipants < room.maxParticipants
-                      ).length
-                    }
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Clock className="w-8 h-8 text-purple-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">총 참여자</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {rooms.reduce(
-                      (sum, room) => sum + room.currentParticipants,
-                      0
-                    )}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* 스터디 방 목록 */}
+        {/* 방 목록 */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">
             활성 스터디 방
@@ -389,9 +348,11 @@ const OpenStudy: React.FC = () => {
                 <p className="text-gray-500 mb-4">
                   첫 번째 스터디 방을 만들어보세요!
                 </p>
-                <Button onClick={() => setCreateDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />방 만들기
-                </Button>
+                {user && (
+                  <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Plus className="w-4 h-4 mr-2" />방 만들기
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
