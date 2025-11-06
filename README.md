@@ -1,7 +1,7 @@
 # 📚 Let's Study Now
 
 <p align="center">
-  <img src="logo.svg" alt="Let's Study Now! Logo" width="400"/>
+  <img src="mainlogo.svg" alt="Let's Study Now! Logo" width="400"/>
 </p>
 
 즉석 스터디 그룹 매칭 웹사이트  
