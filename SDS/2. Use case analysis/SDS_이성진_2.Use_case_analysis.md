@@ -1,7 +1,7 @@
 # 2. Use Case Analysis
 
 > This document summarizes the Use Case Diagram and detailed Use Case Descriptions for **Let’s Study Now! (LSN)**.  
-> 본 장에서는 LSN 시스템의 Use Case Diagram과 각 Use Case의 상세 설명을 제공한다. :contentReference[oaicite:1]{index=1}
+> 본 장에서는 LSN 시스템의 Use Case Diagram과 각 Use Case의 상세 설명을 제공한다. 
 
 ---
 
@@ -9,7 +9,7 @@
 
 - 액터: **User** (일반 사용자), **Admin** (관리자)  
 - 주요 기능: 회원가입(Sign Up), 로그인(Login), 로그아웃(Logout), 프로필 관리(Profile Management), 친구 초대(Friend Invite), 오픈/그룹 스터디룸 입장(Join Open/Group Study Room), 체크리스트 관리(Checklist), 화상 연결(Video), 알림(Notification) 등.  
-- 다이어그램 파일(예시): `./images/usecase_diagram.png` . :contentReference[oaicite:2]{index=2}
+![유스케이스 다이어그램](images/usecase_diagram.png)
 
 ---
 
@@ -19,7 +19,7 @@
 
 ### Use Case #1: Sign Up
 - **Summary**  
-  사용자가 시스템 이용을 위해 필수 및 선택 정보를 입력하고 계정을 생성한다. :contentReference[oaicite:4]{index=4}
+  사용자가 시스템 이용을 위해 필수 및 선택 정보를 입력하고 계정을 생성한다. 
 - **Actor**: User  
 - **Preconditions**: 시스템 접속 가능 상태  
 - **Trigger**: 메인/로그인 화면에서 ‘회원가입’ 버튼 클릭  
@@ -27,110 +27,110 @@
   1. 회원가입 페이지에서 필수 정보를 입력한다.  
   2. 시스템은 ID/이메일 중복 여부를 검증한다.  
   3. 비밀번호 및 선택정보(나이, 프로필 사진, 관심 공부 분야, 자기소개 등)를 입력한다.  
-  4. 가입 완료 버튼 클릭 → DB에 저장 → 로그인 페이지로 이동. :contentReference[oaicite:5]{index=5}
+  4. 가입 완료 버튼 클릭 → DB에 저장 → 로그인 페이지로 이동.
 - **Extension Scenarios**
   - ID/이메일 중복 또는 이메일 형식 오류 → 오류 메시지 출력 및 재입력 요구.  
-  - 프로필 사진 미업로드시 기본 이미지 적용. :contentReference[oaicite:6]{index=6}
+  - 프로필 사진 미업로드시 기본 이미지 적용.
 
 ---
 
 ### Use Case #2: Login
 - **Summary**  
-  등록된 ID와 비밀번호로 시스템에 로그인한다. :contentReference[oaicite:7]{index=7}
+  등록된 ID와 비밀번호로 시스템에 로그인한다.
 - **Actor**: User  
 - **Preconditions**: 회원가입 완료  
 - **Trigger**: 로그인 버튼 클릭  
 - **Main Success Scenario**
   1. ID/비밀번호 입력 → 인증 수행.  
-  2. 인증 성공 시 메인(또는 스케줄) 페이지로 리디렉션. :contentReference[oaicite:8]{index=8}
+  2. 인증 성공 시 메인(또는 스케줄) 페이지로 리디렉션. 
 - **Extension Scenarios**
   - 입력란 공백 → “ID와 비밀번호를 입력하세요” 메시지.  
-  - 정보 불일치 → “ID 또는 비밀번호가 올바르지 않습니다” 메시지. :contentReference[oaicite:9]{index=9}
+  - 정보 불일치 → “ID 또는 비밀번호가 올바르지 않습니다” 메시지. 
 
 ---
 
 ### Use Case #3: Logout
 - **Summary**  
-  로그인한 사용자가 시스템에서 로그아웃한다. :contentReference[oaicite:10]{index=10}
+  로그인한 사용자가 시스템에서 로그아웃한다.
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 로그아웃 버튼 클릭  
 - **Main Success Scenario**
-  1. 로그아웃 요청 수신 → 세션 종료 처리 → 메인/로그인 페이지로 이동 및 성공 메시지 표시. :contentReference[oaicite:11]{index=11}
+  1. 로그아웃 요청 수신 → 세션 종료 처리 → 메인/로그인 페이지로 이동 및 성공 메시지 표시. 
 
 ---
 
 ### Use Case #4: Register Status Message
 - **Summary**  
-  사용자가 현재 기분/상황을 간단한 상태 메시지로 등록하여 다른 참여자와 공유한다. :contentReference[oaicite:12]{index=12}
+  사용자가 현재 기분/상황을 간단한 상태 메시지로 등록하여 다른 참여자와 공유한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 프로필 관리 또는 상태 메시지 메뉴 진입  
 - **Main Success Scenario**
-  1. 상태 메시지 입력 → 등록 클릭 → 유효성 및 글자수 검사 → DB 저장 → 프로필에 반영. :contentReference[oaicite:13]{index=13}
+  1. 상태 메시지 입력 → 등록 클릭 → 유효성 및 글자수 검사 → DB 저장 → 프로필에 반영.
 - **Extension Scenarios**
   - 글자수 초과 → 경고 및 저장 거부.  
-  - 저장 취소 또는 페이지 이탈 → 기존 상태 유지. :contentReference[oaicite:14]{index=14}
+  - 저장 취소 또는 페이지 이탈 → 기존 상태 유지.
 
 ---
 
 ### Use Case #5: Friend Invite (URL)
 - **Summary**  
-  사용자 고유의 초대 URL을 생성·복사하여 외부로 공유한다. :contentReference[oaicite:15]{index=15}
+  사용자 고유의 초대 URL을 생성·복사하여 외부로 공유한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 친구 초대 버튼 클릭  
 - **Main Success Scenario**
-  1. 초대 URL 생성 및 표시 → 복사 → 외부 공유 → 수신자가 접속하면 회원가입/로그인 유도 및 초대정보 인식. :contentReference[oaicite:16]{index=16}
+  1. 초대 URL 생성 및 표시 → 복사 → 외부 공유 → 수신자가 접속하면 회원가입/로그인 유도 및 초대정보 인식. 
 - **Extension Scenarios**
   - URL 생성 실패(서버 오류) → 에러 표시.  
-  - 만료된 URL 접속 시 “유효 기간 만료” 메시지. :contentReference[oaicite:17]{index=17}
+  - 만료된 URL 접속 시 “유효 기간 만료” 메시지.
 
 ---
 
 ### Use Case #6: View/Edit My Profile
 - **Summary**  
-  사용자가 자신의 기본 및 선택 정보를 조회하고 수정한다 (별명, 자기소개, 사진, 공부 분야 등). :contentReference[oaicite:18]{index=18}
+  사용자가 자신의 기본 및 선택 정보를 조회하고 수정한다 (별명, 자기소개, 사진, 공부 분야 등). 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 마이 프로필/프로필 관리 진입  
 - **Main Success Scenario**
-  1. 현재 프로필 정보 표시 → 수정 → 저장 → DB 반영 및 성공 알림. :contentReference[oaicite:19]{index=19}
+  1. 현재 프로필 정보 표시 → 수정 → 저장 → DB 반영 및 성공 알림. 
 - **Extension Scenarios**
   - 자기소개 글자수 초과 등 → 경고 및 저장 거부.  
-  - 프로필 사진 업로드 실패 → 기본 이미지 유지. :contentReference[oaicite:20]{index=20}
+  - 프로필 사진 업로드 실패 → 기본 이미지 유지. 
 
 ---
 
 ### Use Case #7: Write Self-Introduction
 - **Summary**  
-  자기소개를 작성/수정한다 (최대 200자). :contentReference[oaicite:21]{index=21}
+  자기소개를 작성/수정한다 (최대 200자). 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 프로필 수정 화면에서 자기소개 입력 후 저장  
 - **Main Success Scenario**
   1. 자기소개 입력 → 저장 → DB 저장 및 프로필 반영 → 성공 알림.  
 - **Extension Scenarios**
-  - 200자 초과 시 저장 거부 및 경고 메시지. :contentReference[oaicite:22]{index=22}
+  - 200자 초과 시 저장 거부 및 경고 메시지.
 
 ---
 
 ### Use Case #8: Display Basic Info (ID / Email / Age)
 - **Summary**  
-  사용자의 ID, 이메일, 나이를 프로필 화면에 표시한다. :contentReference[oaicite:23]{index=23}
+  사용자의 ID, 이메일, 나이를 프로필 화면에 표시한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 마이 프로필 페이지 로딩  
 - **Main Success Scenario**
   1. DB에서 정보 조회 → 화면에 표시.  
 - **Extension Scenarios**
-  - 정보 누락 시 “정보 없음” 또는 비공개로 표시. :contentReference[oaicite:24]{index=24}
+  - 정보 누락 시 “정보 없음” 또는 비공개로 표시. 
 
 ---
 
 ### Use Case #9: Select/Modify Study Fields
 - **Summary**  
-  사용자가 관심있는 공부 분야를 1개 이상 선택하거나 수정한다. :contentReference[oaicite:25]{index=25}
+  사용자가 관심있는 공부 분야를 1개 이상 선택하거나 수정한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 마이 프로필 수정 > 공부 분야 선택  
@@ -138,26 +138,26 @@
   1. 분야 목록 조회 → 선택 → 저장 → DB 반영 → 완료 알림.  
 - **Extension Scenarios**
   - 서버 오류로 목록 불러오기 실패 → 이전 목록 유지 또는 재시도 안내.  
-  - 선택 개수 제한(최소 1, 최대 5) 위반 시 경고. :contentReference[oaicite:26]{index=26}
+  - 선택 개수 제한(최소 1, 최대 5) 위반 시 경고. 
 
 ---
 
 ### Use Case #10: Upload/Edit Profile Picture
 - **Summary**  
-  로컬에서 이미지 파일을 선택하여 프로필 사진으로 업로드/변경한다. :contentReference[oaicite:27]{index=27}
+  로컬에서 이미지 파일을 선택하여 프로필 사진으로 업로드/변경한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 프로필 사진 업로드 버튼 클릭  
 - **Main Success Scenario**
   1. 이미지 파일 선택 → 타입(예: JPEG/PNG/GIF) 검사 → 서버 저장 → 프로필에 반영 및 미리보기 제공.  
 - **Extension Scenarios**
-  - 지원하지 않는 파일 형식/크기 초과 → 업로드 거부 및 오류 메시지. :contentReference[oaicite:28]{index=28}
+  - 지원하지 않는 파일 형식/크기 초과 → 업로드 거부 및 오류 메시지. 
 
 ---
 
 ### Use Case #11: Account Settings
 - **Summary**  
-  비밀번호 변경, 이메일 변경, 아이디 변경, 계정 탈퇴 등 계정 관련 설정을 관리한다. :contentReference[oaicite:29]{index=29}
+  비밀번호 변경, 이메일 변경, 아이디 변경, 계정 탈퇴 등 계정 관련 설정을 관리한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 계정 설정 메뉴 진입  
@@ -165,13 +165,13 @@
   1. 원하는 설정 선택 → 변경 → 저장 → 시스템 반영 및 알림.  
 - **Extension Scenarios**
   - 보안 규칙 미준수(새 비밀번호 등) → 에러 및 재입력 요구.  
-  - 계정 탈퇴 시 최종 인증(비밀번호 재입력) 및 데이터 삭제/비활성화 처리. :contentReference[oaicite:30]{index=30}
+  - 계정 탈퇴 시 최종 인증(비밀번호 재입력) 및 데이터 삭제/비활성화 처리. 
 
 ---
 
 ### Use Case #12: Change Password
 - **Summary**  
-  기존 비밀번호 확인 후 새 비밀번호로 변경한다 (최소 보안 규칙 적용). :contentReference[oaicite:31]{index=31}
+  기존 비밀번호 확인 후 새 비밀번호로 변경한다 (최소 보안 규칙 적용). 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 계정 설정 > 비밀번호 변경 선택  
@@ -179,52 +179,52 @@
   1. 현재 비밀번호 확인 → 새 비밀번호 입력(정책 검사) → 암호화 저장 → 성공 알림.  
 - **Extension Scenarios**
   - 현재 비밀번호 불일치 → 변경 거부.  
-  - 새 비밀번호 보안 규칙 미준수 → 에러 메시지. :contentReference[oaicite:32]{index=32}
+  - 새 비밀번호 보안 규칙 미준수 → 에러 메시지. 
 
 ---
 
 ### Use Case #13: Change ID
 - **Summary**  
-  본인 인증 후 새 아이디로 변경(중복 검사 포함). :contentReference[oaicite:33]{index=33}
+  본인 인증 후 새 아이디로 변경(중복 검사 포함). 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 계정 설정 > 아이디 변경  
 - **Main Success Scenario**
   1. 새 아이디 입력 → 중복/형식 검사 → 저장 → 재로그인 유도(필요시).  
 - **Extension Scenarios**
-  - 규칙 위반 또는 중복 시 에러 표시. :contentReference[oaicite:34]{index=34}
+  - 규칙 위반 또는 중복 시 에러 표시. 
 
 ---
 
 ### Use Case #14: Delete Account
 - **Summary**  
-  본인 인증(비밀번호) 후 계정을 탈퇴하고 관련 데이터를 삭제/비활성화한다. :contentReference[oaicite:35]{index=35}
+  본인 인증(비밀번호) 후 계정을 탈퇴하고 관련 데이터를 삭제/비활성화한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 계정 설정 > 계정 탈퇴 선택  
 - **Main Success Scenario**
   1. 최종 경고 및 본인 확인 → 삭제 처리 → 강제 로그아웃 → 탈퇴 완료 메시지.  
 - **Extension Scenarios**
-  - 비밀번호 불일치 또는 DB 처리 실패 시 탈퇴 실패 처리. :contentReference[oaicite:36]{index=36}
+  - 비밀번호 불일치 또는 DB 처리 실패 시 탈퇴 실패 처리. 
 
 ---
 
 ### Use Case #15: Notification Settings
 - **Summary**  
-  알림 종류/수신 여부/수단(푸시/이메일) 등을 설정한다. :contentReference[oaicite:37]{index=37}
+  알림 종류/수신 여부/수단(푸시/이메일) 등을 설정한다. 
 - **Actor**: User  
 - **Preconditions**: 로그인 상태  
 - **Trigger**: 알림 설정 진입  
 - **Main Success Scenario**
   1. 토글/옵션 선택 → 저장 → DB 반영 → 알림 변경 확인 메시지.  
 - **Extension Scenarios**
-  - 필수 알림 해제 시 제한 메시지 표시. :contentReference[oaicite:38]{index=38}
+  - 필수 알림 해제 시 제한 메시지 표시. 
 
 ---
 
 ### Use Case #16–20: Open Study Room (Create / View / Join / Delete / List)
 - **Summary**  
-  오픈 스터디룸 생성, 목록 조회, 참여, 삭제 등 공개 스터디 방 관련 기능 일괄. :contentReference[oaicite:39]{index=39}
+  오픈 스터디룸 생성, 목록 조회, 참여, 삭제 등 공개 스터디 방 관련 기능 일괄. 
 - **Actors**: User  
 - **Preconditions**: 로그인 상태  
 - **Triggers**: 오픈 스터디 메뉴 진입 / 방 만들기 / 참여 버튼 클릭 등  
@@ -232,15 +232,15 @@
   - **Create Room**: 필수 항목(제목, 공부 분야, 최대 인원 등) 입력 → 검증 → 생성 → 자동 입장.  
   - **View List**: 실시간 업데이트되는 카드 형태 목록 제공(필터/검색 포함).  
   - **Join Room**: 정원 확인 → 입장 처리 → 멤버 수 증가.  
-  - **Delete Room**: 일정 시간 무참가 또는 방이 빈 상태면 자동 삭제(설정된 타이머에 따라). :contentReference[oaicite:40]{index=40}
+  - **Delete Room**: 일정 시간 무참가 또는 방이 빈 상태면 자동 삭제(설정된 타이머에 따라). 
 - **Extensions**
-  - 정원 초과, 삭제된 방 접근, 실시간 동기화 오류 등 예외 처리. :contentReference[oaicite:41]{index=41}
+  - 정원 초과, 삭제된 방 접근, 실시간 동기화 오류 등 예외 처리. 
 
 ---
 
 ### Use Case #21: Video Connection (Camera)
 - **Summary**  
-  스터디룸 내에서 화상(카메라) 연결을 제어한다 (ON/OFF 상태 동기화). :contentReference[oaicite:42]{index=42}
+  스터디룸 내에서 화상(카메라) 연결을 제어한다 (ON/OFF 상태 동기화).
 - **Actor**: User  
 - **Preconditions**: 방 입장 상태  
 - **Trigger**: 카메라 버튼 클릭  
@@ -248,13 +248,13 @@
   1. 카메라 ON/OFF 전환 → 상태를 실시간으로 다른 참여자에게 반영 → 영상 송출(ON).  
 - **Extension Scenarios**
   - 장치 인식 오류 → 에러 메시지 및 재시도.  
-  - 네트워크 지연으로 실시간 반영 불안정 시 재연결 시도. :contentReference[oaicite:43]{index=43}
+  - 네트워크 지연으로 실시간 반영 불안정 시 재연결 시도. 
 
 ---
 
 ### Use Case #22–26: Checklist (Create / Edit / View / Delete / Manage)
 - **Summary**  
-  체크리스트를 생성·수정·조회·삭제하여 개인 목표 관리를 지원한다. :contentReference[oaicite:44]{index=44}
+  체크리스트를 생성·수정·조회·삭제하여 개인 목표 관리를 지원한다. 
 - **Actors**: User  
 - **Preconditions**: 로그인 상태  
 - **Triggers**: 체크리스트 메뉴 진입 / 생성/수정/삭제 버튼 클릭  
@@ -262,26 +262,26 @@
   - **Create**: 날짜 선택 → 내용 입력(최소 1글자) → 저장 → 달력에 표시(색상 표시).  
   - **Edit**: 기존 항목 선택 → 수정 → 저장.  
   - **View**: 날짜 선택 시 오른쪽에 체크리스트 출력.  
-  - **Delete**: 항목 선택 → 삭제 → DB 반영(최종 확인 다이얼로그 포함). :contentReference[oaicite:45]{index=45}
+  - **Delete**: 항목 선택 → 삭제 → DB 반영(최종 확인 다이얼로그 포함).
 - **Extensions**
   - 내용 미입력 시 경고.  
-  - 삭제 시 최종 확인 요구. :contentReference[oaicite:46]{index=46}
+  - 삭제 시 최종 확인 요구. 
 
 ---
 
 ### Use Case #27–33: Group Study (Group Rooms, Create, Join, End, Members, Lists)
 - **Summary**  
-  그룹 기반 스터디룸 생성/참여/관리(그룹 멤버 관리, 시간 지정 자동 종료 등). :contentReference[oaicite:47]{index=47}
+  그룹 기반 스터디룸 생성/참여/관리(그룹 멤버 관리, 시간 지정 자동 종료 등). 
 - **Actors**: User (Group Member), Group Admin/Leader  
 - **Preconditions**: 로그인 및 그룹 소속  
 - **Triggers**: 그룹 스터디 메뉴 진입 / 방 만들기 / 참여 등  
 - **Key Flows**
   - 그룹 스터디 방 생성 시 방 정보(그룹 선택, 시간, 인원 등) 입력 → 생성자 자동 입장.  
   - 설정된 공부 시간이 종료되면 자동 종료 및 강제 퇴장.  
-  - 그룹 멤버 조회 및 초대(초대 링크) / 멤버 추방(방장 권한) 등. :contentReference[oaicite:48]{index=48}
+  - 그룹 멤버 조회 및 초대(초대 링크) / 멤버 추방(방장 권한) 등. 
 - **Extensions**
   - 그룹 삭제는 방장 외 다른 멤버가 없을 경우만 허용.  
-  - 다중 그룹 소속 시 필터링 기능 제공. :contentReference[oaicite:49]{index=49}
+  - 다중 그룹 소속 시 필터링 기능 제공. 
 
 ---
 
