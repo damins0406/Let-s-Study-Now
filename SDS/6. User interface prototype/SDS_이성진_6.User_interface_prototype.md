@@ -11,7 +11,7 @@
 “지금 시작하기” 버튼을 누르면 회원가입 페이지로 이동한다.  
 각 아이콘 클릭 시 해당 기능 페이지로 이동할 수 있다.
 
-<img width="535" height="321" alt="image" src="[https://github.com/user-attachments/assets/f3eb07f1-6539-418a-a877-1bf868e020cf](https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_main.png?raw=true)" />
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_main.png?raw=true" />
 
 ---
 
@@ -85,8 +85,7 @@
 
 체크리스트 내용을 입력하여 새로운 항목을 추가할 수 있다.
 
-<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_checklist_add.png?raw=true
-" />
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_checklist_add.png?raw=true" />
 
 ---
 
@@ -97,8 +96,7 @@
 - 관심 공부 분야 (최소 1개, 최대 5개)
 - 자기소개 수정 및 저장 가능
 
-<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_profile.png?raw=true
-" />
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_profile.png?raw=true" />
 
 ---
 
@@ -120,8 +118,7 @@
 - 알림 수신 여부 설정 가능  
 - 계정 탈퇴 기능 포함 (탈퇴 시 경고 메시지 표시)
 
-<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_settings.png?raw=true
-" />
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_settings.png?raw=true" />
 
 ---
 
