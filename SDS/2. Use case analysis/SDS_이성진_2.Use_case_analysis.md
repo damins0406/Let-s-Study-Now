@@ -10,7 +10,7 @@
 - 액터: **User** (일반 사용자), **Admin** (관리자)  
 - 주요 기능: 회원가입(Sign Up), 로그인(Login), 로그아웃(Logout), 프로필 관리(Profile Management), 친구 초대(Friend Invite), 오픈/그룹 스터디룸 입장(Join Open/Group Study Room), 체크리스트 관리(Checklist), 화상 연결(Video), 알림(Notification) 등.
 
-<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/2.%20Use%20case%20analysis/images/usecase_diagram.png?raw=true" />
+<img width="800" height="800" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/2.%20Use%20case%20analysis/images/usecase_diagram.png?raw=true" />
 
 ---
 
