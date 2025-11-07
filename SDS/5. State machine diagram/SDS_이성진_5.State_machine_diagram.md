@@ -1,4 +1,4 @@
-# Application State Machine Diagram
+# 5. State Machine Diagram
 
 ![스테이트머신 다이어그램](images/statemachine_diagram.png)
 
@@ -177,6 +177,7 @@ OpenStudyRoom과 동일한 기능 구조를 가지며, 그룹 멤버 중심으�
 - Study → [Study Timeout] → Break  
 - Break → [Break Timeout] → Study  
 - GroupStudyRoom → [Timer Timeout] → 종료  
+
 
 
 
