@@ -1,4 +1,4 @@
-# Class Diagram Documentation
+# 3. Class Diagram
 
 ---
 
