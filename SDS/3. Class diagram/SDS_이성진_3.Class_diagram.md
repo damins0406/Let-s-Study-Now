@@ -6,7 +6,7 @@
 
 ## DB Class Diagram
 
-![DB class diagram](images/DB_class_diagram.png)
+<img width="2000" height="2000" alt="Image" src="https://github.com/user-attachments/assets/7e183265-b62a-4f16-bcec-483516c00d01" />
 
 ### MemberRepository
 
@@ -93,7 +93,7 @@
 
 ## 3.2 DTO Class diagram
 
-![DTO Class Diagram](images/dto_class_diagram.png)
+<img width="2342" height="1134" alt="Image" src="https://github.com/user-attachments/assets/786f4a79-55a2-4ff8-9566-96018425e3b5" />
 
 ### RegisterDto
 
@@ -206,7 +206,7 @@
 
 ## 3.3 인증/보안 Class diagram
 
-![인증/보안 Class Diagram](images/인증_보안_class_diagram.png)
+<img width="3860" height="1836" alt="Image" src="https://github.com/user-attachments/assets/e15940c9-14c0-4161-b41b-770dca4ffe2f" />
 
 ### CustomUser
 
@@ -305,7 +305,7 @@
 
 ## 3.4 오픈 스터디 기능 Class diagram
 
-![오픈 스터디 기능 Class Diagram](images/오픈스터디_diagram.png)
+<img width="9110" height="2870" alt="Image" src="https://github.com/user-attachments/assets/fdc1dd7f-5cc3-4db0-b2d6-bd5e02b4a5a9" />
 
 ### OpenStudyRoomController
 
@@ -467,7 +467,7 @@
 
 ### 3.5.1 Domain
 
-![그룹스터디 Domain](images/그룹스터디_domain.png)
+<img width="1360" height="2680" alt="Image" src="https://github.com/user-attachments/assets/4eec5306-15c1-40bf-a6cb-7f503d9bb466" />
 
 #### Group (Entity)
 
@@ -553,7 +553,7 @@
 
 ### 3.5.2 DTO
 
-![그룹스터디 DTO](images/그룹스터디_dto.png)
+<img width="3600" height="7000" alt="Image" src="https://github.com/user-attachments/assets/157b953e-8654-4597-983f-d74366e522e1" />
 
 #### AddGroupMemberRequest
 
@@ -619,7 +619,7 @@
 
 ### 3.5.3 Services
 
-![그룹스터디 Service](images/그룹스터디_service.png)
+<img width="6042" height="828" alt="Image" src="https://github.com/user-attachments/assets/3273d3c3-9e91-451c-b00c-164101a80967" />
 
 #### GroupService
 
@@ -662,7 +662,7 @@
 
 ### 3.5.4 Controllers
 
-![그룹스터디 Controller](images/그룹스터디_controller.png)
+<img width="4706" height="786" alt="Image" src="https://github.com/user-attachments/assets/e1a70990-dfdf-428e-a3ce-6ac79fde0552" />
 
 #### GroupController
 
@@ -698,7 +698,7 @@
 
 ### 3.5.5 Repositories
 
-![그룹스터디 Repository](images/그룹스터디_repository.png)
+<img width="5868" height="702" alt="Image" src="https://github.com/user-attachments/assets/1dcabdd5-d3fd-4839-aa19-975c07ff3082" />
 
 #### GroupRepository
 
@@ -737,7 +737,7 @@
 
 ## 3.6 체크리스트 Class diagram
 
-![체크리스트 Diagram](images/체크리스트_diagram.png)
+<img width="4823" height="2772" alt="Image" src="https://github.com/user-attachments/assets/a1f6866e-22cd-4793-ac3b-992b3add7019" />
 
 **Description:** 체크리스트 도메인의 구조와 주요 동작을 한눈에 정리한다.
 
