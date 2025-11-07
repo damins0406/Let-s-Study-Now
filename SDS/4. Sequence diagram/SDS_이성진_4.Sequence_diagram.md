@@ -8,6 +8,8 @@
 
 ### 🧍‍♂️ 4.1 회원 기능 Sequence Diagram
 
+<img width="535" height="321" alt="image" src="https://github.com/user-attachments/assets/f3eb07f1-6539-418a-a877-1bf868e020cf" />
+
 #### 🔐 4.1.1 로그인
 1. 사용자가 로그인 요청을 전송  
 2. `MemberController` → `MemberService` 로직 수행  
@@ -16,12 +18,18 @@
 5. 일치 시 `JWT_Handler`를 통해 인증 토큰 생성  
 6. `HttpOnly Cookie`에 토큰 저장 후 로그인 성공 응답  
 
+
+<img width="535" height="321" alt="image" src="https://github.com/user-attachments/assets/1e536c3b-3cf7-44bd-b73d-3e93d53a40a3" />
+
 #### 🧾 4.1.2 회원등록
 1. 사용자 요청 → `MemberController`  
 2. `MemberService`에서 아이디 중복 확인  
 3. 중복 시 실패 응답  
 4. 비밀번호 암호화 후 DB 저장  
 5. 성공 시 회원가입 완료 응답 반환  
+
+
+<img width="540" height="312" alt="image" src="https://github.com/user-attachments/assets/12e6c0a9-7c5c-4449-9bf4-46391cbd029d" />
 
 #### ✏️ 4.1.3 프로필 수정
 1. 사용자 요청 → `MemberController` → `MemberUpdateService`  
@@ -30,6 +38,9 @@
 4. 트랜잭션 종료 시 DB 업데이트  
 5. 수정 완료 응답 반환  
 
+
+<img width="532" height="346" alt="image" src="https://github.com/user-attachments/assets/ca8f7506-a5e9-420b-aedd-3456ac2aa4e0" />
+
 #### 🔑 4.1.4 비밀번호 변경
 1. 사용자 요청 → `MemberController`  
 2. 현재 비밀번호 검증 → 불일치 시 실패  
@@ -37,11 +48,17 @@
 4. 암호화 후 DB 업데이트  
 5. 성공 시 변경 완료 응답  
 
+
+<img width="543" height="354" alt="image" src="https://github.com/user-attachments/assets/4d879346-abbe-42a9-a03d-46522e87ae1d" />
+
 #### 📧 4.1.5 이메일 변경
 1. 비밀번호 검증 후 통과 시  
 2. 새 이메일 중복 확인  
 3. 중복 시 실패, 통과 시 DB 업데이트  
 4. 성공 응답 반환  
+
+
+<img width="541" height="268" alt="image" src="https://github.com/user-attachments/assets/8bc368a7-d480-4ba0-b802-b91f1d508b42" />
 
 #### 🗑️ 4.1.6 계정 삭제
 1. 사용자 비밀번호 확인  
@@ -53,6 +70,8 @@
 
 ### 💬 4.2 오픈 스터디 Sequence Diagram
 
+<img width="531" height="377" alt="image" src="https://github.com/user-attachments/assets/7a27c7f7-50f5-4752-8cd4-c27704480609" />
+
 #### 🏠 4.2.1 방 생성
 1. 사용자 요청 → `OpenStudyRoomController`  
 2. 중복 참여 여부 검사  
@@ -60,10 +79,15 @@
 4. 방 및 첫 참여자 DB 저장  
 5. 성공 응답 반환  
 
+<img width="523" height="281" alt="image" src="https://github.com/user-attachments/assets/a020b9fb-e205-474f-a3c2-6aeae2491866" />
+
 #### 📋 4.2.2 방 목록 조회
 1. 요청 → `OpenStudyRoomController`  
 2. DB에서 활성 방 목록 조회  
 3. DTO로 변환 후 응답  
+
+
+<img width="533" height="484" alt="image" src="https://github.com/user-attachments/assets/96cbb8db-4daa-4ce9-b30d-c314ec89aa5d" />
 
 #### 🙋 4.2.3 방 참여
 1. 기존 참여 여부 검증  
@@ -79,25 +103,37 @@
 
 ### 👥 4.3 그룹 스터디 Sequence Diagram
 
+<img width="563" height="284" alt="image" src="https://github.com/user-attachments/assets/1f629834-4ba6-423a-bbc8-f22b149fb021" />
+
 #### ➕ 4.3.1 그룹 생성
 1. 그룹 이름 검증  
 2. `GroupRepository`에 저장  
 3. DTO 변환 후 성공 응답  
+
+<img width="549" height="365" alt="image" src="https://github.com/user-attachments/assets/6956dedb-526d-4c97-8a21-55a99e1183d8" />
 
 #### 👤 4.3.2 멤버 추가
 1. 그룹 존재 및 중복 멤버 여부 확인  
 2. 중복 시 실패, 신규면 저장  
 3. 성공 응답 반환  
 
+<img width="538" height="405" alt="image" src="https://github.com/user-attachments/assets/214f3a2d-5740-481b-8e10-2e816878e35a" />
+
 #### 🚫 4.3.3 멤버 추방
 1. 리더 권한 및 자기추방 여부 검증  
 2. 존재 확인 후 DB 삭제  
 3. 성공 시 응답 반환  
 
+
+<img width="516" height="494" alt="image" src="https://github.com/user-attachments/assets/2b53ccf3-9edf-4724-a5d4-b7deac2eee3a" />
+
 #### ❌ 4.3.4 그룹 삭제
 1. 그룹 존재 및 리더 권한 확인  
 2. 멤버 수 1명 초과 시 실패  
 3. 삭제 성공 시 응답 반환  
+
+
+<img width="535" height="312" alt="image" src="https://github.com/user-attachments/assets/f38faf20-1b02-445f-9da0-c145fdb9c949" />
 
 #### 🏗️ 4.3.5 스터디방 생성
 1. 그룹 존재 및 요청자 멤버 여부 확인  
@@ -105,20 +141,28 @@
 3. 생성자를 첫 참여자로 등록  
 4. 성공 응답 반환  
 
+<img width="538" height="382" alt="image" src="https://github.com/user-attachments/assets/e3bf1b7c-c506-401f-a2e6-36da1d9ebfbc" />
+
 #### 🚪 4.3.6 스터디방 입장
 1. 방 존재, 멤버 여부, 중복 입장 여부 확인  
 2. 인원수 및 상태 검증  
 3. 참여자 등록 후 응답 반환  
+
+<img width="531" height="376" alt="image" src="https://github.com/user-attachments/assets/ed209111-a743-448c-b66b-75574ca18165" />
 
 #### 🏃 4.3.7 스터디방 퇴장
 1. 존재 및 참여 여부 확인  
 2. 인원수 감소, 참여 기록 삭제  
 3. 성공 응답 반환  
 
+<img width="537" height="363" alt="image" src="https://github.com/user-attachments/assets/33cc134c-c2e7-4e97-a74c-b2ac00bf012d" />
+
 #### 🔚 4.3.8 스터디방 종료
 1. 방 상태 ENDED로 변경  
 2. 모든 참여 기록 삭제  
 3. 성공 응답 반환  
+
+<img width="535" height="294" alt="image" src="https://github.com/user-attachments/assets/cb16ea79-a38b-4919-b68a-2e351342a99d" />
 
 #### 🔍 4.3.9 스터디방 조회
 1. ID 기반 그룹 조회  
@@ -129,29 +173,43 @@
 
 ### ✅ 4.4 체크리스트 Sequence Diagram
 
+<img width="534" height="421" alt="image" src="https://github.com/user-attachments/assets/f9990374-767e-4ce8-a58b-0868a9ea06fb" />
+
 #### 🗒️ 4.4.1 체크리스트 생성
 1. 입력값 유효성 검사  
 2. 사용자 인증 확인  
 3. DB 저장 후 DTO 반환  
+
+<img width="539" height="356" alt="image" src="https://github.com/user-attachments/assets/49801cb0-7081-4fea-b6d1-5fc5f480deb9" />
 
 #### ✏️ 4.4.2 체크리스트 수정
 1. 항목 존재 및 권한 확인  
 2. 내용 업데이트 후 DB 저장  
 3. 성공 응답 반환  
 
+
+<img width="518" height="216" alt="image" src="https://github.com/user-attachments/assets/5a490979-6d61-43c1-8275-b213e8527241" />
+
 #### 🔎 4.4.3 체크리스트 조회
 1. 선택 날짜 기준 조회  
 2. DTO 리스트 변환 후 응답  
+<img width="528" height="173" alt="image" src="https://github.com/user-attachments/assets/fabb2e6d-d9f9-4d50-981f-5b5d5f87702b" />
+
 
 #### 🗓️ 4.4.4 월별 체크리스트 조회
 1. 월별 존재 날짜 목록 조회  
 2. 성공 응답 반환  
 
+<img width="528" height="296" alt="image" src="https://github.com/user-attachments/assets/8fcb76cf-3b82-40f5-8684-21a2bfba37bc" />
+
 #### 🗑️ 4.4.5 체크리스트 삭제
 1. 항목 존재 및 권한 검증  
 2. DB 삭제 후 성공 응답  
+
+<img width="528" height="283" alt="image" src="https://github.com/user-attachments/assets/512f1f29-54f5-47f7-9d9f-0b040a81a4fd" />
 
 #### ✅ 4.4.6 완료/미완료 상태 변경
 1. 항목 존재 및 권한 검증  
 2. 상태 반전 후 DB 업데이트  
 3. 성공 응답 반환  
+
