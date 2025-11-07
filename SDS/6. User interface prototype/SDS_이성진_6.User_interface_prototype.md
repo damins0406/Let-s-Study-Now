@@ -11,7 +11,7 @@
 “지금 시작하기” 버튼을 누르면 회원가입 페이지로 이동한다.  
 각 아이콘 클릭 시 해당 기능 페이지로 이동할 수 있다.
 
-![메인 페이지](images/ui_main.png)
+<img width="535" height="321" alt="image" src="[https://github.com/user-attachments/assets/f3eb07f1-6539-418a-a877-1bf868e020cf](https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_main.png?raw=true)" />
 
 ---
 
@@ -20,7 +20,7 @@
 아이디와 비밀번호를 입력하면 로그인 후 메인 페이지로 이동한다.  
 계정이 없는 사용자는 **회원가입 페이지로 이동**할 수 있다.
 
-![로그인 페이지](images/ui_login.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_login.png?raw=true" />
 
 ---
 
@@ -37,7 +37,7 @@
 
 이미 계정이 있는 경우 로그인 페이지로 이동할 수 있다.
 
-![회원가입 페이지](images/ui_signup.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_signup.png?raw=true" />
 
 ---
 
@@ -47,7 +47,7 @@
 새로 생긴 방을 최신화하기 위한 **새로고침 버튼**과 **방 만들기 버튼**이 있다.  
 각 방에 들어갔을 때의 세부 페이지도 추가될 예정이다.
 
-![오픈 스터디 룸 페이지](images/ui_open_study.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_open_study.png?raw=true" />
 
 ---
 
@@ -60,7 +60,7 @@
 - 최대 인원 수  
 - 공부 분야  
 
-![방 만들기 페이지](images/ui_create_room.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_create_room.png?raw=true" />
 
 ---
 
@@ -70,7 +70,7 @@
 그룹 이름은 필수, 그룹 설명은 선택사항이다.  
 추후 공부 시간 및 공부 분야 설정 기능이 추가될 예정이다.
 
-![그룹 스터디 방 페이지](images/ui_group_study.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_group_study.png?raw=true" />
 
 ---
 
@@ -81,11 +81,12 @@
 - 왼쪽: 날짜 선택 (빨간색은 체크리스트 존재일)  
 - 오른쪽: 선택한 날짜의 체크리스트 생성 가능  
 
-![체크리스트 페이지](images/ui_checklist.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_checklist.png?raw=true" />
 
 체크리스트 내용을 입력하여 새로운 항목을 추가할 수 있다.
 
-![체크리스트 생성 버튼](images/ui_checklist_add.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_checklist_add.png?raw=true
+" />
 
 ---
 
@@ -96,21 +97,22 @@
 - 관심 공부 분야 (최소 1개, 최대 5개)
 - 자기소개 수정 및 저장 가능
 
-![마이페이지 프로필 탭](images/ui_mypage_profile.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_profile.png?raw=true
+" />
 
 ---
 
 ### ✉️ 이메일 탭
 - 현재 이메일을 새 이메일로 변경 가능
 
-![마이페이지 이메일 탭](images/ui_mypage_email.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_email.png?raw=true" />
 
 ---
 
 ### 🔑 비밀번호 탭
 - 현재 비밀번호, 새 비밀번호, 새 비밀번호 확인 입력으로 변경 가능
 
-![마이페이지 비밀번호 탭](images/ui_mypage_password.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_password.png?raw=true" />
 
 ---
 
@@ -118,7 +120,8 @@
 - 알림 수신 여부 설정 가능  
 - 계정 탈퇴 기능 포함 (탈퇴 시 경고 메시지 표시)
 
-![마이페이지 설정 탭](images/ui_mypage_settings.png)
+<img width="535" height="321" alt="image" src="https://github.com/FAITRUEE/Let-s-Study-Now/blob/main/SDS/6.%20User%20interface%20prototype/images/ui_mypage_settings.png?raw=true
+" />
 
 ---
 
