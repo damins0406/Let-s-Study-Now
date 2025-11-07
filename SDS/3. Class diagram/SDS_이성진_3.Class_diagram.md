@@ -6,7 +6,7 @@
 
 ## DB Class Diagram
 
-![DB class diagram](images/DB*class* diagram.png)
+![DB class diagram](images/DB_class_diagram.png)
 
 ### MemberRepository
 
