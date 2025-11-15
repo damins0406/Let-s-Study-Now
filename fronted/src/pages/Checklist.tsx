@@ -53,11 +53,11 @@ const ChecklistPage: React.FC = () => {
   const [selectedForDelete, setSelectedForDelete] = useState<string[]>([]);
 
   useEffect(() => {
-    if (user && selectedDate) {
+    if (selectedDate) {
       loadChecklists();
       loadMonthSummary();
     }
-  }, [user, selectedDate]);
+  }, [selectedDate]);
 
   const formatDate = (date: Date) => {
     return date.toISOString().split("T")[0];
@@ -68,13 +68,20 @@ const ChecklistPage: React.FC = () => {
     try {
       const dateStr = formatDate(selectedDate);
       const checklistsData = await checklistAPI.getChecklists(dateStr);
-      setChecklists(checklistsData);
+      // API 응답이 배열인지 확인
+      if (Array.isArray(checklistsData)) {
+        setChecklists(checklistsData);
+      } else {
+        setChecklists([]);
+      }
     } catch (error) {
+      console.error("Failed to load checklists:", error);
       toast({
         title: "오류",
         description: "체크리스트를 불러오는데 실패했습니다.",
         variant: "destructive",
       });
+      setChecklists([]); // 에러 시 빈 배열로 설정
     }
     setLoading(false);
   };
@@ -84,9 +91,15 @@ const ChecklistPage: React.FC = () => {
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth() + 1;
       const summary = await checklistAPI.getMonthSummary(year, month);
-      setMonthSummary(summary.dates);
+      // API 응답이 { dates: [...] } 형태인지 확인
+      if (summary && Array.isArray(summary.dates)) {
+        setMonthSummary(summary.dates);
+      } else {
+        setMonthSummary([]);
+      }
     } catch (error) {
       console.error("Failed to load month summary:", error);
+      setMonthSummary([]); // 에러 시 빈 배열로 설정
     }
   };
 
@@ -103,9 +116,10 @@ const ChecklistPage: React.FC = () => {
     setLoading(true);
     try {
       const dateStr = formatDate(selectedDate);
+      // API 스키마에 맞게 수정: targetDate로 변경
       await checklistAPI.createChecklist({
+        targetDate: dateStr,
         content: newChecklistContent.trim(),
-        date: dateStr,
       });
 
       toast({
@@ -139,10 +153,10 @@ const ChecklistPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await checklistAPI.updateChecklist(
-        editingChecklist.id,
-        editContent.trim()
-      );
+      // API 스키마에 맞게 수정: content만 전달
+      await checklistAPI.updateChecklist(editingChecklist.id, {
+        content: editContent.trim(),
+      });
 
       toast({
         title: "성공",
@@ -237,9 +251,13 @@ const ChecklistPage: React.FC = () => {
     );
   };
 
-  // 달력에서 체크리스트가 있는 날짜 표시
+  // 달력에서 체크리스트가 있는 날짜 표시 (빨간색)
   const modifiers = {
-    hasChecklist: monthSummary.map((dateStr) => new Date(dateStr)),
+    hasChecklist: (monthSummary || []).map((dateStr) => {
+      // "YYYY-MM-DD" 형식의 문자열을 Date 객체로 변환
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }),
   };
 
   const modifiersStyles = {
@@ -249,23 +267,9 @@ const ChecklistPage: React.FC = () => {
     },
   };
 
-  /* if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="flex items-center justify-center py-12">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <CardTitle>로그인이 필요합니다</CardTitle>
-              <CardDescription>
-                체크리스트를 이용하려면 로그인해주세요
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  } */
+  const modifiersClassNames = {
+    hasChecklist: "text-red-600 font-bold",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -294,17 +298,29 @@ const ChecklistPage: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <style>
+                  {`
+                    /* 체크리스트가 있는 날짜를 빨간색으로 표시 */
+                    .rdp-day.hasChecklist button {
+                      color: #dc2626 !important;
+                      font-weight: bold !important;
+                    }
+                    .rdp-day.hasChecklist:not(.rdp-day_selected) button:hover {
+                      color: #991b1b !important;
+                    }
+                  `}
+                </style>
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={(date) => date && setSelectedDate(date)}
                   modifiers={modifiers}
-                  modifiersStyles={modifiersStyles}
+                  modifiersClassNames={modifiersClassNames}
                   className="rounded-md border"
                 />
                 <div className="mt-4 text-xs text-gray-500">
-                  <span className="text-red-600 font-bold">빨간색</span> 날짜는
-                  체크리스트가 있는 날입니다
+                  <span className="text-red-600 font-bold">●</span> 빨간색
+                  날짜는 체크리스트가 있는 날입니다
                 </div>
               </CardContent>
             </Card>

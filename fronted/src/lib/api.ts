@@ -39,7 +39,18 @@ class ApiClient {
         // 인증 실패 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
           console.warn("세션이 만료되었습니다. 다시 로그인하세요.");
-          window.location.href = "/login";
+
+          // ✅ 공개 페이지에서는 리다이렉트하지 않음
+          const publicPaths = ["/", "/login", "/register"];
+          const currentPath = window.location.hash.replace("#", "") || "/";
+          const isPublicPath = publicPaths.some((path) =>
+            currentPath.startsWith(path)
+          );
+
+          // 보호된 페이지에서만 로그인 페이지로 리다이렉트
+          if (!isPublicPath) {
+            window.location.href = "#/login";
+          }
         }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -143,10 +154,11 @@ export interface Group {
   memberCount: number;
 }
 
+// ✅ 체크리스트 타입 - 스키마에 맞게 수정
 export interface Checklist {
   id: string;
   content: string;
-  date: string;
+  targetDate: string; // ✅ date → targetDate로 변경
   completed: boolean;
   createdAt: string;
 }
@@ -168,7 +180,7 @@ export const authAPI = {
     return apiClient.post<{ message: string }>("/api/registerAct", formData);
   },
   getProfile: () => apiClient.get<User>("/api/profile"),
-  logout: () => apiClient.post<{ message: string }>("/api/logoutAct"),
+  logout: () => apiClient.post<{ message: string }>("/api/logout"),
 };
 
 // 👥 그룹 관련
@@ -233,18 +245,29 @@ export const studyRoomAPI = {
     apiClient.get<StudyRoom[]>(`/api/study-rooms/group/${groupId}`),
 };
 
-// ✅ 체크리스트 관련
+// ✅ 체크리스트 관련 - 스키마에 맞게 수정
 export const checklistAPI = {
+  // GET: 특정 날짜의 체크리스트 조회
   getChecklists: (date: string) =>
     apiClient.get<Checklist[]>(`/api/checklist?date=${date}`),
-  createChecklist: (data: { content: string; date: string }) =>
+
+  // POST: 체크리스트 생성 - targetDate 사용
+  createChecklist: (data: { targetDate: string; content: string }) =>
     apiClient.post<Checklist>("/api/checklist", data),
-  updateChecklist: (checklistId: string, content: string) =>
-    apiClient.put<Checklist>(`/api/checklist/${checklistId}`, { content }),
+
+  // PUT: 체크리스트 내용 수정 - content 객체로 전달
+  updateChecklist: (checklistId: string, data: { content: string }) =>
+    apiClient.put<Checklist>(`/api/checklist/${checklistId}`, data),
+
+  // DELETE: 체크리스트 삭제
   deleteChecklist: (checklistId: string) =>
     apiClient.delete<{ message: string }>(`/api/checklist/${checklistId}`),
+
+  // PATCH: 체크리스트 완료/미완료 토글
   toggleChecklist: (checklistId: string) =>
     apiClient.patch<Checklist>(`/api/checklist/${checklistId}/toggle`),
+
+  // GET: 월별 체크리스트 요약 (날짜 목록)
   getMonthSummary: (year: number, month: number) =>
     apiClient.get<{ dates: string[] }>(
       `/api/checklist/month-summary?year=${year}&month=${month}`
