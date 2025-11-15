@@ -15,6 +15,7 @@ interface AuthContextType {
   register: (data: any) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
+  refreshUser: () => Promise<void>; // ✅ 추가
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -105,6 +106,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // ✅ 로그아웃
   const logout = async (): Promise<void> => {
     try {
+      // ✅ 로그아웃 전에 현재 참여 중인 방 나가기
+      try {
+        const currentRoom = await authAPI.getProfile();
+        // TODO: 현재 방 정보를 가져올 수 있다면
+        // await openStudyAPI.leaveRoom(currentRoomId);
+
+        // 또는 백엔드에서 로그아웃 시 자동으로 방 나가기 처리
+      } catch (roomError) {
+        console.warn("Failed to leave room on logout:", roomError);
+      }
+
       await authAPI.logout(); // 쿠키 세션 무효화
     } catch (error) {
       console.warn("Logout request failed:", error);
@@ -117,12 +129,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // ✅ 유저 상태 업데이트
+  // ✅ 유저 상태 업데이트 (로컬 업데이트)
   const updateUser = (userData: Partial<User>) => {
     setUser((prev) => (prev ? { ...prev, ...userData } : null));
   };
 
-  const value = { user, loading, login, register, logout, updateUser };
+  // ✅ 사용자 정보 새로고침 (서버에서 최신 정보 가져오기)
+  const refreshUser = async (): Promise<void> => {
+    try {
+      const userData = await authAPI.getProfile();
+      setUser(userData);
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      // 프로필 로드 실패 시 로그아웃 처리
+      setUser(null);
+      toast({
+        title: "세션 만료",
+        description: "다시 로그인해주세요.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    register,
+    logout,
+    updateUser,
+    refreshUser, // ✅ 추가
+  };
 
   return (
     <AuthContext.Provider value={value}>

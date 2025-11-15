@@ -36,6 +36,19 @@ class ApiClient {
       const response = await fetch(url, config);
 
       if (!response.ok) {
+        // ✅ 서버에서 보낸 에러 메시지 파싱
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // JSON 파싱 실패 시 기본 메시지 사용
+        }
+
         // 인증 실패 시 로그인 페이지로 리다이렉트
         if (response.status === 401) {
           console.warn("세션이 만료되었습니다. 다시 로그인하세요.");
@@ -52,7 +65,8 @@ class ApiClient {
             window.location.href = "#/login";
           }
         }
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+        throw new Error(errorMessage);
       }
 
       const contentType = response.headers.get("content-type");
@@ -95,8 +109,11 @@ class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "DELETE" });
+  async delete<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "DELETE",
+      body: data ? JSON.stringify(data) : undefined,
+    });
   }
 }
 
@@ -134,24 +151,31 @@ export interface RegisterRequest {
 }
 
 export interface StudyRoom {
-  id: string;
+  id: number;
   title: string;
   description?: string;
   maxParticipants: number;
   currentParticipants: number;
   studyField: string;
-  createdBy: string;
-  createdAt: string;
-  isActive: boolean;
+  isFull: boolean;
+  creatorUsername: string;
+  createdAt?: string;
+  isActive?: boolean;
+  createdBy?: string;
 }
 
 export interface Group {
-  id: string;
-  name: string;
-  description?: string;
-  createdBy: string;
+  id: number;
+  groupName: string;
+  leaderId: number;
   createdAt: string;
-  memberCount: number;
+}
+
+export interface GroupMember {
+  id: number;
+  memberId: number;
+  role: string;
+  joinedAt: string;
 }
 
 // ✅ 체크리스트 타입 - 스키마에 맞게 수정
@@ -171,34 +195,91 @@ export interface Checklist {
 export const authAPI = {
   login: (data: LoginRequest) => apiClient.post<User>("/api/loginAct", data), // ✅ 세션 쿠키 저장
   register: (data: RegisterRequest) => {
-    // ✅ 파일이 있을 경우 FormData 사용
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined && value !== null)
-        formData.append(key, value as any);
-    });
-    return apiClient.post<{ message: string }>("/api/registerAct", formData);
+    // ✅ 파일이 있을 경우만 FormData 사용
+    if (data.profileImageFile && data.profileImageFile instanceof File) {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null)
+          formData.append(key, value as any);
+      });
+      return apiClient.post<{ message: string }>("/api/registerAct", formData);
+    } else {
+      // ✅ 파일이 없으면 JSON으로 전송
+      const jsonData = { ...data };
+      delete jsonData.profileImageFile; // 빈 문자열 제거
+      return apiClient.post<{ message: string }>("/api/registerAct", jsonData);
+    }
   },
   getProfile: () => apiClient.get<User>("/api/profile"),
   logout: () => apiClient.post<{ message: string }>("/api/logout"),
+
+  // ✅ 프로필 업데이트 - /api/update/profile
+  updateProfile: (data: {
+    profileImage?: string;
+    studyField?: string;
+    bio?: string;
+    profileImageFile?: File; // 파일 업로드용
+  }) => {
+    const formData = new FormData();
+
+    if (data.profileImage) formData.append("profileImage", data.profileImage);
+    if (data.studyField) formData.append("studyField", data.studyField);
+    if (data.bio) formData.append("bio", data.bio);
+    if (data.profileImageFile)
+      formData.append("profileImageFile", data.profileImageFile);
+
+    return apiClient.put<User>("/api/update/profile", formData);
+  },
+
+  // ✅ 비밀번호 변경 - /api/update/password
+  updatePassword: (data: {
+    currentPassword: string;
+    newPassword: string;
+    newPasswordCheck: string;
+  }) => apiClient.put<{ message: string }>("/api/update/password", data),
+
+  // ✅ 계정 삭제 - /api/delete/account
+  deleteAccount: (password: string) =>
+    apiClient.delete<{ message: string }>("/api/delete/account", { password }),
 };
 
-// 👥 그룹 관련
+// 👥 그룹 관련 - 스키마에 맞게 수정
 export const groupAPI = {
+  // GET /api/groups - 전체 그룹 목록
   getAllGroups: () => apiClient.get<Group[]>("/api/groups"),
+
+  // GET /api/groups/my - 내 그룹 목록
+  // ✅ 옵션 1: leaderId를 쿼리로 전달
+  getMyGroupsWithId: (leaderId: number) =>
+    apiClient.get<Group[]>(`/api/groups/my?leaderId=${leaderId}`),
+
+  // ✅ 옵션 2: 세션에서 자동으로 leaderId 추출 (백엔드가 지원하는 경우)
   getMyGroups: () => apiClient.get<Group[]>("/api/groups/my"),
-  createGroup: (name: string, description?: string) =>
-    apiClient.post<Group>("/api/groups", { name, description }),
-  getGroup: (groupId: string) => apiClient.get<Group>(`/api/groups/${groupId}`),
-  deleteGroup: (groupId: string) =>
+
+  // POST /api/groups - 그룹 생성
+  createGroup: (data: { groupName: string; leaderId: number }) =>
+    apiClient.post<Group>("/api/groups", data),
+
+  // GET /api/groups/{groupId} - 그룹 조회
+  getGroup: (groupId: number) => apiClient.get<Group>(`/api/groups/${groupId}`),
+
+  // DELETE /api/groups/{groupId} - 그룹 삭제
+  deleteGroup: (groupId: number) =>
     apiClient.delete<{ message: string }>(`/api/groups/${groupId}`),
-  getMembers: (groupId: string) =>
-    apiClient.get<User[]>(`/api/groups/${groupId}/members`),
-  addMember: (groupId: string, memberId: string) =>
+
+  // GET /api/groups/{groupId}/members - 멤버 목록 조회
+  getMembers: (groupId: number) =>
+    apiClient.get<GroupMember[]>(`/api/groups/${groupId}/members`),
+
+  // POST /api/groups/{groupId}/members - 멤버 추가
+  addMember: (groupId: number, memberId: number) =>
     apiClient.post<{ message: string }>(`/api/groups/${groupId}/members`, {
+      groupId,
       memberId,
     }),
-  removeMember: (groupId: string, memberId: string) =>
+
+  // DELETE /api/groups/{groupId}/members/{memberId} - 멤버 추방
+  removeMember: (groupId: number, memberId: number) =>
     apiClient.delete<{ message: string }>(
       `/api/groups/${groupId}/members/${memberId}`
     ),
@@ -210,8 +291,8 @@ export const openStudyAPI = {
   createRoom: (data: {
     title: string;
     description?: string;
-    maxParticipants: number;
     studyField: string;
+    maxParticipants: number;
   }) => apiClient.post<StudyRoom>("/api/open-study/rooms", data),
   getRoom: (roomId: string) =>
     apiClient.get<StudyRoom>(`/api/open-study/rooms/${roomId}`),
@@ -221,6 +302,9 @@ export const openStudyAPI = {
     apiClient.post<{ message: string }>(
       `/api/open-study/rooms/${roomId}/leave`
     ),
+  // ✅ 방 삭제 (방장만 가능)
+  deleteRoom: (roomId: string) =>
+    apiClient.delete<{ message: string }>(`/api/open-study/rooms/${roomId}`),
 };
 
 // 📚 그룹 스터디룸 관련
@@ -243,6 +327,9 @@ export const studyRoomAPI = {
     apiClient.post<{ message: string }>(`/api/study-rooms/${roomId}/end`),
   getGroupRooms: (groupId: string) =>
     apiClient.get<StudyRoom[]>(`/api/study-rooms/group/${groupId}`),
+  // ✅ 방 삭제 (방장만 가능)
+  deleteRoom: (roomId: string) =>
+    apiClient.delete<{ message: string }>(`/api/study-rooms/${roomId}`),
 };
 
 // ✅ 체크리스트 관련 - 스키마에 맞게 수정

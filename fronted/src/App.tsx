@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import OpenStudy from "./pages/OpenStudy";
 import GroupStudy from "./pages/GroupStudy";
 import Checklist from "./pages/Checklist";
+import StudyRoom from "./pages/StudyRoom";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,8 @@ const App = () => (
             <Route path="/open-study" element={<OpenStudy />} />
             <Route path="/group-study" element={<GroupStudy />} />
             <Route path="/checklist" element={<Checklist />} />
+            {/* 스터디룸 페이지 - roomId 파라미터 포함 */}
+            <Route path="/room/:roomId" element={<StudyRoom />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
