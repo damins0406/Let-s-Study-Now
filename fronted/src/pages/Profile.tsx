@@ -53,11 +53,6 @@ const Profile: React.FC = () => {
     notificationEnabled: true,
   });
 
-  // 이메일 변경 상태
-  const [emailData, setEmailData] = useState({
-    newEmail: "",
-  });
-
   // 비밀번호 변경 상태
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -128,34 +123,6 @@ const Profile: React.FC = () => {
       toast({
         title: "오류",
         description: "프로필 업데이트에 실패했습니다.",
-        variant: "destructive",
-      });
-    }
-    setLoading(false);
-  };
-
-  const handleEmailUpdate = async () => {
-    if (!emailData.newEmail) {
-      toast({
-        title: "오류",
-        description: "새 이메일을 입력해주세요.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await authAPI.updateEmail(emailData.newEmail);
-      toast({
-        title: "성공",
-        description: "이메일이 변경되었습니다.",
-      });
-      setEmailData({ newEmail: "" });
-    } catch (error) {
-      toast({
-        title: "오류",
-        description: "이메일 변경에 실패했습니다.",
         variant: "destructive",
       });
     }
@@ -253,10 +220,6 @@ const Profile: React.FC = () => {
     }));
   };
 
-  /* if (!user) {
-    return <div>로딩 중...</div>;
-  } */
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -269,9 +232,8 @@ const Profile: React.FC = () => {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile">프로필</TabsTrigger>
-            <TabsTrigger value="email">이메일</TabsTrigger>
             <TabsTrigger value="password">비밀번호</TabsTrigger>
             <TabsTrigger value="settings">설정</TabsTrigger>
           </TabsList>
@@ -351,7 +313,7 @@ const Profile: React.FC = () => {
                     className="bg-gray-50"
                   />
                   <p className="text-xs text-gray-500">
-                    이메일 변경은 '이메일' 탭에서 가능합니다
+                    이메일은 변경할 수 없습니다
                   </p>
                 </div>
 
@@ -401,46 +363,6 @@ const Profile: React.FC = () => {
 
                 <Button onClick={handleProfileUpdate} disabled={loading}>
                   {loading ? "저장 중..." : "프로필 저장"}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="email">
-            <Card>
-              <CardHeader>
-                <CardTitle>이메일 변경</CardTitle>
-                <CardDescription>
-                  계정의 이메일 주소를 변경할 수 있습니다
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="current-email">현재 이메일</Label>
-                  <Input
-                    id="current-email"
-                    value={user.email}
-                    disabled
-                    className="bg-gray-50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="new-email">새 이메일</Label>
-                  <Input
-                    id="new-email"
-                    type="email"
-                    value={emailData.newEmail}
-                    onChange={(e) => setEmailData({ newEmail: e.target.value })}
-                    placeholder="새 이메일을 입력하세요"
-                  />
-                </div>
-
-                <Button
-                  onClick={handleEmailUpdate}
-                  disabled={loading || !emailData.newEmail}
-                >
-                  {loading ? "변경 중..." : "이메일 변경"}
                 </Button>
               </CardContent>
             </Card>
