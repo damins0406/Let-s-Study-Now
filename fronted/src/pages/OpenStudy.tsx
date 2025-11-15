@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,21 +46,40 @@ const STUDY_FIELDS = [
 
 const OpenStudy: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<StudyRoom | null>(null); // ✅ 현재 참여 중인 방
   const [loading, setLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
+  // ✅ API 스키마에 맞게 수정 (studyField를 먼저, maxParticipants를 나중에)
   const [newRoom, setNewRoom] = useState({
     title: "",
     description: "",
-    maxParticipants: 4,
     studyField: "",
+    maxParticipants: 4,
   });
 
-  // ✅ 로그인 여부와 관계없이 방 목록 로드 (쿠키 기반이라 자동 인증됨)
   useEffect(() => {
     loadRooms();
-  }, []);
+    if (user) {
+      // ✅ 로컬 스토리지에서 현재 방 정보 복원
+      const savedRoom = localStorage.getItem("currentStudyRoom");
+      if (savedRoom) {
+        try {
+          const room = JSON.parse(savedRoom);
+          setCurrentRoom(room);
+        } catch (error) {
+          console.error("Failed to parse saved room:", error);
+          localStorage.removeItem("currentStudyRoom");
+        }
+      }
+    } else {
+      // 로그아웃 시 로컬 스토리지 초기화
+      localStorage.removeItem("currentStudyRoom");
+      setCurrentRoom(null);
+    }
+  }, [user]);
 
   const loadRooms = async () => {
     setLoading(true);
@@ -115,11 +135,12 @@ const OpenStudy: React.FC = () => {
 
     setLoading(true);
     try {
+      // ✅ API 스키마 순서에 맞게 전송
       await openStudyAPI.createRoom({
         title: newRoom.title,
         description: newRoom.description || undefined,
-        maxParticipants: newRoom.maxParticipants,
         studyField: newRoom.studyField,
+        maxParticipants: newRoom.maxParticipants,
       });
 
       toast({
@@ -131,22 +152,25 @@ const OpenStudy: React.FC = () => {
       setNewRoom({
         title: "",
         description: "",
-        maxParticipants: 4,
         studyField: "",
+        maxParticipants: 4,
       });
 
       loadRooms();
-    } catch (error) {
+    } catch (error: any) {
+      // ✅ 서버에서 보낸 에러 메시지 표시
+      const errorMessage = error?.message || "스터디 방 생성에 실패했습니다.";
+
       toast({
         title: "오류",
-        description: "스터디 방 생성에 실패했습니다.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
     setLoading(false);
   };
 
-  const handleJoinRoom = async (roomId: string) => {
+  const handleJoinRoom = async (roomId: number) => {
     if (!user) {
       toast({
         title: "로그인 필요",
@@ -158,20 +182,96 @@ const OpenStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      await openStudyAPI.joinRoom(roomId);
+      await openStudyAPI.joinRoom(roomId.toString());
+
+      // ✅ 참여한 방 정보를 로컬 스토리지에 저장
+      const joinedRoom = rooms.find((r) => r.id === roomId);
+      if (joinedRoom) {
+        localStorage.setItem("currentStudyRoom", JSON.stringify(joinedRoom));
+        setCurrentRoom(joinedRoom);
+      }
+
       toast({
         title: "성공",
         description: "스터디 방에 참여했습니다.",
       });
-      loadRooms();
-    } catch (error) {
-      toast({
-        title: "오류",
-        description: "스터디 방 참여에 실패했습니다.",
-        variant: "destructive",
-      });
+
+      // ✅ 스터디룸 페이지로 이동
+      navigate(`/room/${roomId}`);
+    } catch (error: any) {
+      // ✅ 409 Conflict - 이미 다른 방에 참여 중
+      if (error?.message?.includes("이미 다른 스터디룸에 참여")) {
+        try {
+          // ✅ 로컬 스토리지에서 현재 방 정보 가져오기
+          let currentRoomData = currentRoom;
+
+          if (!currentRoomData) {
+            const savedRoom = localStorage.getItem("currentStudyRoom");
+            if (savedRoom) {
+              currentRoomData = JSON.parse(savedRoom);
+            }
+          }
+
+          if (currentRoomData) {
+            const shouldLeave = confirm(
+              `이미 "${currentRoomData.title}" 방에 참여 중입니다.\n현재 방을 나가고 새로운 방에 참여하시겠습니까?`
+            );
+
+            if (shouldLeave) {
+              // 현재 방 나가기
+              await openStudyAPI.leaveRoom(currentRoomData.id.toString());
+
+              // 로컬 스토리지 초기화
+              localStorage.removeItem("currentStudyRoom");
+
+              // 새로운 방 참여
+              await openStudyAPI.joinRoom(roomId.toString());
+
+              // 새로운 방 정보 저장
+              const newRoom = rooms.find((r) => r.id === roomId);
+              if (newRoom) {
+                localStorage.setItem(
+                  "currentStudyRoom",
+                  JSON.stringify(newRoom)
+                );
+                setCurrentRoom(newRoom);
+              }
+
+              toast({
+                title: "성공",
+                description: "새로운 스터디 방에 참여했습니다.",
+              });
+
+              navigate(`/room/${roomId}`);
+            }
+          } else {
+            // 현재 방 정보를 가져올 수 없는 경우
+            toast({
+              title: "안내",
+              description:
+                "이미 다른 스터디룸에 참여 중입니다. 먼저 현재 방을 나간 후 다시 시도해주세요.",
+              variant: "destructive",
+            });
+          }
+        } catch (leaveError: any) {
+          toast({
+            title: "오류",
+            description: leaveError?.message || "방 전환에 실패했습니다.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        // 기타 오류
+        const errorMessage = error?.message || "스터디 방 참여에 실패했습니다.";
+        toast({
+          title: "오류",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -179,6 +279,61 @@ const OpenStudy: React.FC = () => {
       <Navbar />
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* ✅ 현재 참여 중인 방 표시 */}
+        {currentRoom && (
+          <Card className="mb-6 bg-blue-50 border-blue-200">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-500 text-white">
+                    <BookOpen className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">
+                      현재 참여 중인 방
+                    </p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {currentRoom.title}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button onClick={() => navigate(`/room/${currentRoom.id}`)}>
+                    방으로 이동
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        await openStudyAPI.leaveRoom(currentRoom.id.toString());
+
+                        // ✅ 로컬 스토리지 초기화
+                        localStorage.removeItem("currentStudyRoom");
+
+                        toast({
+                          title: "나가기 완료",
+                          description: "스터디 방에서 나갔습니다.",
+                        });
+                        setCurrentRoom(null);
+                        loadRooms();
+                      } catch (error: any) {
+                        toast({
+                          title: "오류",
+                          description:
+                            error?.message || "방 나가기에 실패했습니다.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    방 나가기
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 헤더 */}
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -249,30 +404,6 @@ const OpenStudy: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="max-participants">최대 인원 *</Label>
-                        <Select
-                          value={newRoom.maxParticipants.toString()}
-                          onValueChange={(value) =>
-                            setNewRoom((prev) => ({
-                              ...prev,
-                              maxParticipants: parseInt(value),
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                              <SelectItem key={num} value={num.toString()}>
-                                {num}명
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
                         <Label htmlFor="study-field">공부 분야 *</Label>
                         <Select
                           value={newRoom.studyField}
@@ -290,6 +421,30 @@ const OpenStudy: React.FC = () => {
                             {STUDY_FIELDS.map((field) => (
                               <SelectItem key={field} value={field}>
                                 {field}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="max-participants">최대 인원 *</Label>
+                        <Select
+                          value={newRoom.maxParticipants.toString()}
+                          onValueChange={(value) =>
+                            setNewRoom((prev) => ({
+                              ...prev,
+                              maxParticipants: parseInt(value),
+                            }))
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num}명
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -320,17 +475,24 @@ const OpenStudy: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ 로그인 안한 경우 안내 메시지 추가 */}
+        {/* 로그인 안한 경우 안내 메시지 */}
         {!user && (
-          <div className="text-center text-gray-500 mb-8">
-            로그인을 하면 스터디 방을 생성하거나 참여할 수 있습니다.
-          </div>
+          <Card className="mb-8 bg-blue-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="flex items-center">
+                <Users className="w-5 h-5 text-blue-600 mr-3" />
+                <p className="text-blue-900">
+                  로그인하시면 스터디 방을 생성하거나 참여할 수 있습니다.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* 방 목록 */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            활성 스터디 방
+            활성 스터디 방 ({rooms.length}개)
           </h2>
 
           {loading && rooms.length === 0 ? (
@@ -368,11 +530,16 @@ const OpenStudy: React.FC = () => {
                         <CardTitle className="text-lg line-clamp-1">
                           {room.title}
                         </CardTitle>
-                        <CardDescription className="mt-1">
+                        <div className="mt-2 flex items-center gap-2">
                           <Badge variant="secondary" className="text-xs">
                             {room.studyField}
                           </Badge>
-                        </CardDescription>
+                          {room.isFull && (
+                            <Badge variant="destructive" className="text-xs">
+                              정원 마감
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-gray-900">
@@ -392,23 +559,15 @@ const OpenStudy: React.FC = () => {
 
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-gray-500">
-                        {new Date(room.createdAt).toLocaleString("ko-KR")}
+                        방장: {room.creatorUsername}
                       </div>
 
                       <Button
                         size="sm"
                         onClick={() => handleJoinRoom(room.id)}
-                        disabled={
-                          loading ||
-                          room.currentParticipants >= room.maxParticipants ||
-                          !room.isActive
-                        }
+                        disabled={loading || room.isFull || !user}
                       >
-                        {room.currentParticipants >= room.maxParticipants
-                          ? "정원 초과"
-                          : !room.isActive
-                          ? "비활성"
-                          : "참여하기"}
+                        {room.isFull ? "정원 초과" : "참여하기"}
                       </Button>
                     </div>
                   </CardContent>
