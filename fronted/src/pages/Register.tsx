@@ -13,7 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff, Camera, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
 const STUDY_FIELDS = [
@@ -37,6 +38,8 @@ const Register: React.FC = () => {
     bio: "",
     studyFields: [] as string[],
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,6 +65,39 @@ const Register: React.FC = () => {
     }));
   };
 
+  // ✅ 프로필 이미지 선택 핸들러
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // 파일 크기 체크 (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("이미지 크기는 5MB를 초과할 수 없습니다.");
+        return;
+      }
+
+      // 파일 타입 체크
+      if (!file.type.startsWith("image/")) {
+        alert("이미지 파일만 업로드 가능합니다.");
+        return;
+      }
+
+      setProfileImage(file);
+
+      // 미리보기 생성
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // ✅ 이미지 제거 핸들러
+  const handleRemoveImage = () => {
+    setProfileImage(null);
+    setImagePreview("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -77,17 +113,28 @@ const Register: React.FC = () => {
 
     setLoading(true);
 
-    const payload = {
+    const payload: any = {
       email: formData.email,
       username: formData.username,
       password: formData.password,
       checkPassword: formData.confirmPassword,
-      age: formData.age ? parseInt(formData.age) : 0,
-      profileImageFile: "",
       studyField: formData.studyFields[0], // 배열의 첫 번째 값만 전달
-      bio: formData.bio || "",
       checkPw: true,
     };
+
+    // ✅ 선택적 필드는 값이 있을 때만 추가
+    if (formData.age) {
+      payload.age = parseInt(formData.age);
+    }
+
+    if (formData.bio) {
+      payload.bio = formData.bio;
+    }
+
+    // ✅ 프로필 이미지가 있으면 추가
+    if (profileImage) {
+      payload.profileImageFile = profileImage;
+    }
 
     console.log("📤 보낼 데이터:", payload); // 확인용
 
@@ -123,34 +170,64 @@ const Register: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">아이디 *</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    placeholder="2-12자 이내"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    required
-                    minLength={2}
-                    maxLength={12}
-                  />
+              {/* ✅ 프로필 이미지 업로드 */}
+              <div className="flex flex-col items-center space-y-4">
+                <div className="relative">
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage src={imagePreview} />
+                    <AvatarFallback className="text-2xl bg-gray-200">
+                      {formData.username
+                        ? formData.username.charAt(0).toUpperCase()
+                        : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {imagePreview && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="age">나이</Label>
+                <div className="text-center">
+                  <Label
+                    htmlFor="profile-image"
+                    className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    프로필 이미지 선택
+                  </Label>
                   <Input
-                    id="age"
-                    name="age"
-                    type="number"
-                    placeholder="나이를 입력하세요"
-                    value={formData.age}
-                    onChange={handleInputChange}
-                    min="1"
-                    max="100"
+                    id="profile-image"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
                   />
+                  <p className="text-xs text-gray-500 mt-2">
+                    JPG, PNG (최대 5MB)
+                  </p>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="username">아이디 *</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  placeholder="2-12자 이내"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  required
+                  minLength={2}
+                  maxLength={12}
+                />
               </div>
 
               <div className="space-y-2">
