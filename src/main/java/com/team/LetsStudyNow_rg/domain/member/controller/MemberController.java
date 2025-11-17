@@ -1,9 +1,8 @@
 package com.team.LetsStudyNow_rg.domain.member.controller;
 
-import com.team.LetsStudyNow_rg.domain.dto.*;
-import com.team.LetsStudyNow_rg.domain.member.dto.*;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.*;
+import com.team.LetsStudyNow_rg.domain.member.dto.response.ProfileDto;
 import com.team.LetsStudyNow_rg.global.auth.CustomUser;
-import com.team.LetsStudyNow_rg.member.dto.*;
 import com.team.LetsStudyNow_rg.domain.member.service.MemberService;
 import com.team.LetsStudyNow_rg.domain.member.service.MemberUpdateService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,8 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.validation.BindingResult;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "1. 사용자 인증/계정 API", description = "회원가입, 로그인, 프로필 관리 등 사용자 계정 관련 API")
@@ -32,166 +30,109 @@ public class MemberController {
     @Operation(summary = "로그인", description = "아이디와 비밀번호로 로그인하고, HttpOnly 쿠키에 JWT를 발급합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "로그인 성공"),
-            @ApiResponse(responseCode = "400", description = "로그인 실패 (아이디 또는 비밀번호 불일치 / 입력값 오류)")
+            @ApiResponse(responseCode = "400", description = "로그인 실패 (아이디/비밀번호 불일치 또는 입력값 오류)")
     })
     @PostMapping("/loginAct")
-    public ResponseEntity loginAct(
+    public ResponseEntity<String> loginAct(
             @Valid @RequestBody LoginDto req,
-            BindingResult br,
             HttpServletResponse response
     ) {
-        if (br.hasErrors()) {
-            return ResponseEntity.badRequest().body(br.getAllErrors());
-        }
-        try {
-            memberService.loginService(req, response);
-            return ResponseEntity.status(HttpStatus.CREATED).body("로그인 성공");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("로그인 실패");
-        }
+        memberService.loginService(req, response);
+        return ResponseEntity.status(HttpStatus.CREATED).body("로그인 성공");
     }
 
     // 회원가입 api
     @Operation(summary = "회원가입", description = "새로운 사용자를 등록합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "회원가입 성공"),
-            @ApiResponse(responseCode = "400", description = "입력값 유효성 검사 실패 또는 이메일/아이디 중복")
+            @ApiResponse(responseCode = "409", description = "이메일 또는 아이디 중복"), // Handler의 CONFLICT 상태 코드 반영
+            @ApiResponse(responseCode = "400", description = "입력값 유효성 검사 실패")
     })
     @PostMapping("/registerAct")
-    public ResponseEntity registerAct(
-            @Valid @RequestBody RegisterDto req,
-            BindingResult br
+    public ResponseEntity<String> registerAct(
+            @Valid @RequestBody RegisterDto req
     ) {
-        if (br.hasErrors()) {
-            System.out.println(br.getAllErrors());
-            return ResponseEntity.badRequest().body(br.getAllErrors());
-        }
-
-        try {
-            memberService.registerService(req);
-            return ResponseEntity.status(HttpStatus.CREATED).body("회원가입 성공");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        memberService.registerService(req);
+        return ResponseEntity.status(HttpStatus.CREATED).body("회원가입 성공");
     }
 
     // 마이프로필 api
     @Operation(summary = "마이프로필 조회", description = "현재 로그인된 사용자의 프로필 정보를 조회합니다. (인증 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "프로필 조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자 (로그인 필요)"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 또는 사용자를 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/profile")
-    public ResponseEntity profile(Authentication auth) {
-        try {
-            var customUser = (CustomUser) auth.getPrincipal();
-            ProfileDto profileDto = memberService.profileService(customUser);
-            return ResponseEntity.ok(profileDto);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<ProfileDto> profile(
+            @AuthenticationPrincipal CustomUser customUser
+    ) {
+        ProfileDto profileDto = memberService.profileService(customUser);
+        return ResponseEntity.ok(profileDto);
     }
 
     // 프로필 수정 api
     @Operation(summary = "마이프로필 수정", description = "현재 로그인된 사용자의 프로필 정보(사진, 공부분야, 자기소개)를 수정합니다. (인증 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "프로필 수정 성공"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/update/profile")
-    public ResponseEntity updateProfile(
-            @Valid @RequestBody
-            ProfileUpdateDto req,
-            Authentication auth
+    public ResponseEntity<ProfileDto> updateProfile(
+            @Valid @RequestBody ProfileUpdateDto req,
+            @AuthenticationPrincipal CustomUser customUser
     ) {
-        try {
-            var customUser = (CustomUser) auth.getPrincipal();
-            ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req);
-            return ResponseEntity.ok(profileDto);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-
+        ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req);
+        return ResponseEntity.ok(profileDto);
     }
 
     // 이메일 변경 api
     @Operation(summary = "이메일 변경", description = "현재 로그인된 사용자의 이메일 주소를 변경합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "이메일 변경 성공"),
-            @ApiResponse(responseCode = "400", description = "입력값 오류, 비밀번호 불일치, 또는 이미 사용 중인 이메일"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+            @ApiResponse(responseCode = "400", description = "비밀번호 불일치 또는 입력값 오류"),
+            @ApiResponse(responseCode = "409", description = "이미 사용 중인 이메일")
     })
     @PreAuthorize("isAuthenticated()")
     @PutMapping("/update/email")
     public ResponseEntity<String> updateEmail(
-            @Valid @RequestBody EmailChangeDtd req,
-            BindingResult bindingResult,
-            Authentication auth
+            @Valid @RequestBody EmailChangeDto req,
+            @AuthenticationPrincipal CustomUser customUser
     ) {
-        if (bindingResult.hasErrors()) {
-            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
-            return ResponseEntity.badRequest().body(errorMessage);
-        }
-
-        try {
-            CustomUser customUser = (CustomUser) auth.getPrincipal();
-            memberUpdateService.updateEmail(customUser, req);
-            return ResponseEntity.ok("이메일이 변경되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        memberUpdateService.updateEmail(customUser, req);
+        return ResponseEntity.ok("이메일이 변경되었습니다.");
     }
 
     // 회원 비밀번호 변경 api
     @Operation(summary = "비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. (인증 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "비밀번호 변경 성공"),
-            @ApiResponse(responseCode = "400", description = "입력값 오류 또는 현재 비밀번호 불일치"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+            @ApiResponse(responseCode = "400", description = "비밀번호 불일치 또는 입력값 오류")
     })
     @PreAuthorize("isAuthenticated()")
     @PatchMapping("/update/password")
     public ResponseEntity<String> changePassword(
-            @Valid @RequestBody
-            PasswordChangeDto passwordChangeDto,
-            BindingResult bindingResult,
-            Authentication auth
+            @Valid @RequestBody PasswordChangeDto passwordChangeDto,
+            @AuthenticationPrincipal CustomUser customUser
     ) {
-        if (bindingResult.hasErrors()) {
-            String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
-            return ResponseEntity.badRequest().body(errorMessage);
-        }
-
-        try {
-            CustomUser user = (CustomUser) auth.getPrincipal();
-            memberUpdateService.changePassword(user, passwordChangeDto);
-            return ResponseEntity.ok("비밀번호가 변경되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        memberUpdateService.changePassword(customUser, passwordChangeDto);
+        return ResponseEntity.ok("비밀번호가 변경되었습니다.");
     }
 
     // 회원 탈퇴 api
+    @Operation(summary = "회원 탈퇴", description = "비밀번호 확인 후 계정을 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "계정 삭제 성공"),
+            @ApiResponse(responseCode = "400", description = "비밀번호 불일치")
+    })
     @PreAuthorize("isAuthenticated()")
     @DeleteMapping("/delete/account")
-    public ResponseEntity<String> AccountDelete(
+    public ResponseEntity<String> deleteAccount(
             @Valid @RequestBody AccountDeleteDto req,
-            BindingResult bindingResult,
-            Authentication auth
+            @AuthenticationPrincipal CustomUser customUser
     ) {
-        if (bindingResult.hasErrors()) {
-            return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
-        }
-        try {
-            CustomUser customUser = (CustomUser) auth.getPrincipal();
-            memberUpdateService.deleteAccount(customUser, req);
-            return ResponseEntity.ok("계정이 삭제되었습니다.");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        memberUpdateService.deleteAccount(customUser, req);
+        return ResponseEntity.ok("계정이 삭제되었습니다.");
     }
 }

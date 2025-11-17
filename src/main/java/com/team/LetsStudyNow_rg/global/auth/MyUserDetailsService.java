@@ -24,7 +24,7 @@ public class MyUserDetailsService implements UserDetailsService {
 
         // 일반유저: ROLE_USER, 관리자: ROLE_ADMIN
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(user.getRole()));
+        authorities.add(new SimpleGrantedAuthority(user.getRole().name()));
 
         CustomUser customUser = new CustomUser(user.getUsername(), user.getPassword(), authorities);
         customUser.id = user.getId();

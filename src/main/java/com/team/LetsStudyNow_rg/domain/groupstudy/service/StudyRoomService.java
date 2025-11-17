@@ -9,7 +9,6 @@ import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupMemberReposito
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.StudyRoomParticipantRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.StudyRoomRepository;
-import com.team.LetsStudyNow_rg.groupstudy.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

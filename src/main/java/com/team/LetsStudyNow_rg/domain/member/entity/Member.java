@@ -1,5 +1,6 @@
 package com.team.LetsStudyNow_rg.domain.member.entity;
 
+import com.team.LetsStudyNow_rg.domain.member.enums.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,8 @@ public class Member {
     private String password; // 비밀번호
 
     private Integer age; // 나이
-    private String role; // 권한
+    @Enumerated(EnumType.STRING) // 문자열 그대로 저장
+    private Role role; // 권한
     private String profileImage; // 프로필 사진 (임시)
     private String studyField; // 공부 분야
     @Column(length = 500)

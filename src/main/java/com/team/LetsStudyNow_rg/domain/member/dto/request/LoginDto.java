@@ -1,7 +1,6 @@
-package com.team.LetsStudyNow_rg.domain.member.dto;
+package com.team.LetsStudyNow_rg.domain.member.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 
 public record LoginDto(
         @NotBlank(message = "아이디를 입력해주세요.")

@@ -1,13 +1,15 @@
 package com.team.LetsStudyNow_rg.domain.checklist.service;
 
+import com.team.LetsStudyNow_rg.domain.checklist.dto.request.ChecklistCreateDto;
+import com.team.LetsStudyNow_rg.domain.checklist.dto.request.ChecklistUpdateDto;
+import com.team.LetsStudyNow_rg.domain.checklist.dto.response.ChecklistResponseDto;
 import com.team.LetsStudyNow_rg.domain.checklist.entity.Checklist;
+import com.team.LetsStudyNow_rg.domain.checklist.exception.ChecklistNotFoundException;
 import com.team.LetsStudyNow_rg.domain.checklist.repository.ChecklistRepository;
-import com.team.LetsStudyNow_rg.global.auth.CustomUser;
-import com.team.LetsStudyNow_rg.domain.checklist.dto.ChecklistCreateDto;
-import com.team.LetsStudyNow_rg.domain.checklist.dto.ChecklistResponseDto;
-import com.team.LetsStudyNow_rg.domain.checklist.dto.ChecklistUpdateDto;
 import com.team.LetsStudyNow_rg.domain.member.entity.Member;
+import com.team.LetsStudyNow_rg.domain.member.exception.MemberNotFoundException;
 import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
+import com.team.LetsStudyNow_rg.global.auth.CustomUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,23 +28,21 @@ public class ChecklistService {
     @Transactional
     public ChecklistResponseDto createChecklist(CustomUser customUser, ChecklistCreateDto req) {
         Member member = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id)); // Member 예외 재사용
 
         Checklist checklist = new Checklist();
         checklist.setMember(member);
         checklist.setTargetDate(req.targetDate());
         checklist.setContent(req.content());
 
-
         var savedChecklist = checklistRepository.save(checklist);
-        ChecklistResponseDto responseDto = new ChecklistResponseDto(
+
+        return new ChecklistResponseDto(
                 savedChecklist.getId(),
                 savedChecklist.getTargetDate(),
                 savedChecklist.getContent(),
                 savedChecklist.isCompleted()
         );
-
-        return responseDto;
     }
 
     // 특정 날짜 체크리스트 조회
@@ -50,7 +50,7 @@ public class ChecklistService {
     public List<ChecklistResponseDto> getChecklistByDate(CustomUser customUser, LocalDate date) {
         List<Checklist> checklists = checklistRepository.findByMemberIdAndTargetDate(customUser.id, date);
 
-        var result = checklists.stream()
+        return checklists.stream()
                 .map(checklist -> new ChecklistResponseDto(
                         checklist.getId(),
                         checklist.getTargetDate(),
@@ -58,11 +58,9 @@ public class ChecklistService {
                         checklist.isCompleted()
                 ))
                 .collect(Collectors.toList());
-
-        return result;
     }
 
-    // 특정 날짜 체크리스트 조회
+    // 월별 체크리스트 존재 날짜 조회
     @Transactional(readOnly = true)
     public List<Integer> getDaysWithChecklistByMonth(CustomUser customUser, int year, int month) {
         return checklistRepository.findDaysWithChecklistByMonth(customUser.id, year, month);
@@ -71,38 +69,8 @@ public class ChecklistService {
     // 체크리스트 수정
     @Transactional
     public ChecklistResponseDto updateChecklist(CustomUser customUser, Long checklistId, ChecklistUpdateDto dto) {
-        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
+        Checklist checklist = findChecklist(checklistId, customUser.id);
         checklist.setContent(dto.content());
-
-        ChecklistResponseDto responseDto = new ChecklistResponseDto(
-                checklist.getId(),
-                checklist.getTargetDate(),
-                checklist.getContent(),
-                checklist.isCompleted()
-        );
-        return responseDto;
-    }
-
-    // 체크리스트 삭제
-    @Transactional
-    public void deleteChecklist(CustomUser customUser, Long checklistId) {
-        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
-        checklistRepository.delete(checklist);
-    }
-
-    // 체크리스트 완료/미완료 설정
-    @Transactional
-    public ChecklistResponseDto toggleChecklist(CustomUser customUser, Long checklistId) {
-        Checklist checklist = checklistRepository.findByIdAndMemberId(checklistId, customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 체크리스트를 찾을 수 없거나 권한이 없습니다."));
-
-        if (!checklist.isCompleted()) {
-            checklist.setCompleted(true);
-        } else {
-            checklist.setCompleted(false);
-        }
 
         return new ChecklistResponseDto(
                 checklist.getId(),
@@ -110,5 +78,34 @@ public class ChecklistService {
                 checklist.getContent(),
                 checklist.isCompleted()
         );
+    }
+
+    // 체크리스트 삭제
+    @Transactional
+    public void deleteChecklist(CustomUser customUser, Long checklistId) {
+        Checklist checklist = findChecklist(checklistId, customUser.id);
+        checklistRepository.delete(checklist);
+    }
+
+    // 체크리스트 완료/미완료 토글
+    @Transactional
+    public ChecklistResponseDto toggleChecklist(CustomUser customUser, Long checklistId) {
+        Checklist checklist = findChecklist(checklistId, customUser.id);
+
+        // 상태 반전
+        checklist.setCompleted(!checklist.isCompleted());
+
+        return new ChecklistResponseDto(
+                checklist.getId(),
+                checklist.getTargetDate(),
+                checklist.getContent(),
+                checklist.isCompleted()
+        );
+    }
+
+    // [Private Helper] 중복되는 조회 검증 로직 추출
+    private Checklist findChecklist(Long checklistId, Long memberId) {
+        return checklistRepository.findByIdAndMemberId(checklistId, memberId)
+                .orElseThrow(() -> new ChecklistNotFoundException(checklistId));
     }
 }

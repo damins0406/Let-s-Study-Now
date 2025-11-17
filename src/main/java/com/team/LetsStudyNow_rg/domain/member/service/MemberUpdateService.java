@@ -1,11 +1,16 @@
 package com.team.LetsStudyNow_rg.domain.member.service;
 
-import com.team.LetsStudyNow_rg.domain.dto.*;
-import com.team.LetsStudyNow_rg.domain.member.dto.*;
-import com.team.LetsStudyNow_rg.global.auth.CustomUser;
-import com.team.LetsStudyNow_rg.member.dto.*;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.AccountDeleteDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.EmailChangeDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.PasswordChangeDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.ProfileUpdateDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.response.ProfileDto;
 import com.team.LetsStudyNow_rg.domain.member.entity.Member;
+import com.team.LetsStudyNow_rg.domain.member.exception.DuplicateEmailException;
+import com.team.LetsStudyNow_rg.domain.member.exception.MemberNotFoundException;
+import com.team.LetsStudyNow_rg.domain.member.exception.PasswordMismatchException;
 import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
+import com.team.LetsStudyNow_rg.global.auth.CustomUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,8 +25,9 @@ public class MemberUpdateService {
     // 마이프로필 수정 로직
     @Transactional
     public ProfileDto updateProfileService(CustomUser customUser, ProfileUpdateDto req) {
+        // 커스텀 예외 적용
         Member user = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("해당 사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
         if (req.profileImage() != null) {
             user.setProfileImage(req.profileImage());
@@ -45,16 +51,17 @@ public class MemberUpdateService {
 
     // 이메일 변경 로직
     @Transactional
-    public void updateEmail(CustomUser customUser, EmailChangeDtd req) {
+    public void updateEmail(CustomUser customUser, EmailChangeDto req) {
         Member user = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
+        // 커스텀 예외 적용
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            throw new PasswordMismatchException("현재 비밀번호가 일치하지 않습니다.");
         }
 
         if (memberRepository.existsByEmail(req.newEmail())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
+            throw new DuplicateEmailException(req.newEmail());
         }
 
         user.setEmail(req.newEmail());
@@ -64,15 +71,17 @@ public class MemberUpdateService {
     @Transactional
     public void changePassword(CustomUser customUser, PasswordChangeDto req) {
         Member user = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
-        // 현재 비밀번호 불일치 시 예외처리
+        // 커스텀 예외 적용
         if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+            throw new PasswordMismatchException("현재 비밀번호가 일치하지 않습니다.");
         }
+
         if (!req.newPassword().equals(req.newPasswordCheck())) {
-            throw new IllegalArgumentException("새로운 비밀번호가 일치하지 않습니다.");
+            throw new PasswordMismatchException("새로운 비밀번호와 확인 비밀번호가 일치하지 않습니다.");
         }
+
         var newPassword = passwordEncoder.encode(req.newPassword());
         user.setPassword(newPassword);
     }
@@ -81,10 +90,11 @@ public class MemberUpdateService {
     @Transactional
     public void deleteAccount(CustomUser customUser, AccountDeleteDto req) {
         Member user = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
+        // 커스텀 예외 적용
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+            throw new PasswordMismatchException("비밀번호가 일치하지 않습니다.");
         }
         memberRepository.delete(user);
     }

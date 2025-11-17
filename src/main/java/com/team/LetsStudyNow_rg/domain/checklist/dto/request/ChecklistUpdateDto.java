@@ -1,4 +1,4 @@
-package com.team.LetsStudyNow_rg.domain.checklist.dto;
+package com.team.LetsStudyNow_rg.domain.checklist.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 
