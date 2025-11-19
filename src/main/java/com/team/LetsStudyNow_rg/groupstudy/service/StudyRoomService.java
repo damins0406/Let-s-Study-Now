@@ -151,6 +151,11 @@ public class StudyRoomService {
         StudyRoom room = studyRoomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("스터디 방을 찾을 수 없습니다"));
 
+        // 방장은 퇴장할 수 없음
+        if (room.getCreatorId().equals(memberId)) {
+            throw new IllegalArgumentException("방 생성자는 방을 나갈 수 없습니다. 방 삭제를 이용해주세요.");
+        }
+
         // 참여자 확인
         participantRepository.findByStudyRoomIdAndMemberId(roomId, memberId)
                 .orElseThrow(() -> new IllegalArgumentException("참여하지 않은 방입니다"));
@@ -176,7 +181,7 @@ public class StudyRoomService {
         participantRepository.deleteByStudyRoomId(roomId);
     }
 
-    // 종료 시간이 지난 방 자동 종료
+    // 타이머 종료된 방 자동 종료 및 삭제
     @Transactional
     public void autoEndExpiredRooms() {
         List<StudyRoom> activeRooms = studyRoomRepository.findAll().stream()
@@ -185,7 +190,32 @@ public class StudyRoomService {
                 .collect(Collectors.toList());
 
         for (StudyRoom room : activeRooms) {
-            endRoom(room.getId());
+            // 모든 참여자 삭제
+            participantRepository.deleteByStudyRoomId(room.getId());
+            // 방 완전 삭제
+            studyRoomRepository.delete(room);
         }
+    }
+
+    // 스터디방 삭제 (방 생성자만 가능, 본인만 있을 때)
+    @Transactional
+    public void deleteRoom(Long roomId, Long memberId) {
+        StudyRoom room = studyRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디 방을 찾을 수 없습니다"));
+
+        // 1. 방 생성자인지 확인
+        if (!room.getCreatorId().equals(memberId)) {
+            throw new IllegalArgumentException("방 생성자만 방을 삭제할 수 있습니다");
+        }
+
+        // 2. 현재 참여 인원 확인 (방 생성자만 있어야 함)
+        long participantCount = participantRepository.countByStudyRoomId(roomId);
+        if (participantCount > 1) {
+            throw new IllegalArgumentException("방에 다른 멤버가 있을 때는 삭제할 수 없습니다");
+        }
+
+        // 3. 참여자 삭제 후 방 삭제
+        participantRepository.deleteByStudyRoomId(roomId);
+        studyRoomRepository.delete(room);
     }
 }
