@@ -82,4 +82,14 @@ public class StudyRoomController {
         studyRoomService.endRoom(roomId);
         return ResponseEntity.noContent().build();
     }
+
+    // 스터디방 삭제 (방 생성자만 가능, 본인만 있을 때)
+    @Operation(summary = "스터디방 삭제", description = "방 생성자가 스터디방을 삭제합니다 (본인만 있을 때)")
+    @DeleteMapping("/{roomId}")
+    public ResponseEntity<Void> deleteRoom(
+            @PathVariable Long roomId,
+            @RequestParam Long memberId) {
+        studyRoomService.deleteRoom(roomId, memberId);
+        return ResponseEntity.noContent().build();
+    }
 }
