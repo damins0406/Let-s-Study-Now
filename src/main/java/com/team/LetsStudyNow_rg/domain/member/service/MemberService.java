@@ -1,0 +1,93 @@
+package com.team.LetsStudyNow_rg.domain.member.service;
+
+import com.team.LetsStudyNow_rg.domain.member.dto.request.LoginDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.request.RegisterDto;
+import com.team.LetsStudyNow_rg.domain.member.dto.response.ProfileDto;
+import com.team.LetsStudyNow_rg.domain.member.entity.Member;
+import com.team.LetsStudyNow_rg.domain.member.enums.Role;
+import com.team.LetsStudyNow_rg.domain.member.exception.DuplicateEmailException;
+import com.team.LetsStudyNow_rg.domain.member.exception.DuplicateUsernameException;
+import com.team.LetsStudyNow_rg.domain.member.exception.MemberNotFoundException;
+import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
+import com.team.LetsStudyNow_rg.global.auth.CustomUser;
+import com.team.LetsStudyNow_rg.global.jwt.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class MemberService {
+    private final MemberRepository memberRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManagerBuilder authenticationManagerBuilder;
+    final int ACCESS_TIME = 60 * 60;
+
+    // 로그인 로직
+    @Transactional
+    public void loginService(LoginDto req, HttpServletResponse response) {
+        var authToken = new UsernamePasswordAuthenticationToken(req.username(), req.password());
+        var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        var auth2 = SecurityContextHolder.getContext().getAuthentication();
+        var jwt = JwtUtil.createToken(auth2);
+
+        ResponseCookie cookie = ResponseCookie.from("jwt", jwt)
+                .maxAge(ACCESS_TIME)
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .build();
+
+        response.addHeader("Set-Cookie", cookie.toString());
+    }
+
+    // 회원가입 로직
+    @Transactional
+    public void registerService(RegisterDto req) {
+        // 커스텀 예외 적용
+        if (memberRepository.existsByEmail(req.email())) {
+            throw new DuplicateEmailException(req.email());
+        }
+        if (memberRepository.existsByUsername(req.username())) {
+            throw new DuplicateUsernameException(req.username());
+        }
+
+        String encodePw = passwordEncoder.encode(req.password());
+
+        Member member = new Member();
+        member.setUsername(req.username());
+        member.setEmail(req.email());
+        member.setPassword(encodePw);
+        member.setAge(req.age());
+        member.setRole(Role.ROLE_USER);
+        member.setProfileImage(req.profileImageFile());
+        member.setStudyField(req.studyField());
+        member.setBio(req.bio());
+        memberRepository.save(member);
+    }
+
+    // 마이프로필 로직
+    @Transactional(readOnly = true)
+    public ProfileDto profileService(CustomUser customUser) {
+        // 커스텀 예외 적용
+        Member user = memberRepository.findById(customUser.id)
+                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
+
+        return new ProfileDto(
+                user.getEmail(),
+                user.getUsername(),
+                user.getAge(),
+                user.getProfileImage(),
+                user.getStudyField(),
+                user.getBio()
+        );
+    }
+}
