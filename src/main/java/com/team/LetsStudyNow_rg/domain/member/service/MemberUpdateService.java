@@ -1,12 +1,10 @@
 package com.team.LetsStudyNow_rg.domain.member.service;
 
 import com.team.LetsStudyNow_rg.domain.member.dto.request.AccountDeleteDto;
-import com.team.LetsStudyNow_rg.domain.member.dto.request.EmailChangeDto;
 import com.team.LetsStudyNow_rg.domain.member.dto.request.PasswordChangeDto;
 import com.team.LetsStudyNow_rg.domain.member.dto.request.ProfileUpdateDto;
 import com.team.LetsStudyNow_rg.domain.member.dto.response.ProfileDto;
 import com.team.LetsStudyNow_rg.domain.member.entity.Member;
-import com.team.LetsStudyNow_rg.domain.member.exception.DuplicateEmailException;
 import com.team.LetsStudyNow_rg.domain.member.exception.MemberNotFoundException;
 import com.team.LetsStudyNow_rg.domain.member.exception.PasswordMismatchException;
 import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
@@ -42,29 +40,11 @@ public class MemberUpdateService {
         return new ProfileDto(
                 user.getEmail(),
                 user.getUsername(),
-                user.getAge(),
                 user.getProfileImage(),
                 user.getStudyField(),
-                user.getBio()
+                user.getBio(),
+                user.getLevel()
         );
-    }
-
-    // 이메일 변경 로직
-    @Transactional
-    public void updateEmail(CustomUser customUser, EmailChangeDto req) {
-        Member user = memberRepository.findById(customUser.id)
-                .orElseThrow(() -> new MemberNotFoundException(customUser.id));
-
-        // 커스텀 예외 적용
-        if (!passwordEncoder.matches(req.currentPassword(), user.getPassword())) {
-            throw new PasswordMismatchException("현재 비밀번호가 일치하지 않습니다.");
-        }
-
-        if (memberRepository.existsByEmail(req.newEmail())) {
-            throw new DuplicateEmailException(req.newEmail());
-        }
-
-        user.setEmail(req.newEmail());
     }
 
     // 비밀번호 변경 로직

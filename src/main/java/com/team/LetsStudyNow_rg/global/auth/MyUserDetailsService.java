@@ -19,16 +19,18 @@ public class MyUserDetailsService implements UserDetailsService {
     private final MemberRepository memberRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException{
-        var user = memberRepository.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("계정이 존재하지 않습니다."));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException{
+        var user = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("계정이 없습니다."));
 
         // 일반유저: ROLE_USER, 관리자: ROLE_ADMIN
         List<GrantedAuthority> authorities = new ArrayList<>();
         authorities.add(new SimpleGrantedAuthority(user.getRole().name()));
 
-        CustomUser customUser = new CustomUser(user.getUsername(), user.getPassword(), authorities);
+        CustomUser customUser = new CustomUser(user.getEmail(), user.getPassword(), authorities);
         customUser.id = user.getId();
-        customUser.email = user.getEmail();
+        customUser.username = user.getUsername();
+        customUser.username = user.getEmail();
         return customUser;
     }
 }

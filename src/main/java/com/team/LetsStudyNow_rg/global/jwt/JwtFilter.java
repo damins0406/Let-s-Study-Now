@@ -57,11 +57,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // CustomUser에 저장
         CustomUser customUser = new CustomUser(
-                claims.get("username").toString(),
+                claims.get("email").toString(),
                 "none",
                 authorities
         );
+        customUser.username = claims.get("username").toString();
         customUser.email = claims.get("email").toString();
+
         Number n = claims.get("id", Number.class);
         if (n != null) customUser.id = n.longValue();
 

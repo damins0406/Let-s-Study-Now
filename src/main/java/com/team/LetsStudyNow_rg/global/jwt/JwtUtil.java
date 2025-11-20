@@ -35,7 +35,7 @@ public class JwtUtil {
                 .collect(Collectors.joining(","));
 
         String jwt = Jwts.builder()
-                .claim("username", user.getUsername())
+                .claim("username", user.username)
                 .claim("email", user.email)
                 .claim("id", user.id)
                 .claim("authorities", authorities)

@@ -32,7 +32,7 @@ public class MemberService {
     // 로그인 로직
     @Transactional
     public void loginService(LoginDto req, HttpServletResponse response) {
-        var authToken = new UsernamePasswordAuthenticationToken(req.username(), req.password());
+        var authToken = new UsernamePasswordAuthenticationToken(req.email(), req.password());
         var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(auth);
         var auth2 = SecurityContextHolder.getContext().getAuthentication();
@@ -62,15 +62,16 @@ public class MemberService {
 
         String encodePw = passwordEncoder.encode(req.password());
 
-        Member member = new Member();
-        member.setUsername(req.username());
-        member.setEmail(req.email());
-        member.setPassword(encodePw);
-        member.setAge(req.age());
-        member.setRole(Role.ROLE_USER);
-        member.setProfileImage(req.profileImageFile());
-        member.setStudyField(req.studyField());
-        member.setBio(req.bio());
+        Member member = Member.builder()
+                .username(req.username())
+                .email(req.email())
+                .password(encodePw)
+                .role(Role.ROLE_USER)
+                // .profileImage(req.profileImageFile())
+                .studyField(req.studyField())
+                .bio(req.bio())
+                .build();
+
         memberRepository.save(member);
     }
 
@@ -84,10 +85,10 @@ public class MemberService {
         return new ProfileDto(
                 user.getEmail(),
                 user.getUsername(),
-                user.getAge(),
                 user.getProfileImage(),
                 user.getStudyField(),
-                user.getBio()
+                user.getBio(),
+                user.getLevel()
         );
     }
 }

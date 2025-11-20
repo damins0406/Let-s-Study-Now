@@ -43,8 +43,8 @@ public class OpenStudyRoomController {
         @Valid @RequestBody OpenStudyRoomCreateDto dto,
         @AuthenticationPrincipal CustomUser user
     ) {
-        Member member = memberRepository.findByUsername(user.getUsername())
-            .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
+        Member member = memberRepository.findById(user.id)
+                .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
         
         OpenStudyRoom room = openStudyRoomService.createRoom(dto, member);
         
@@ -85,8 +85,8 @@ public class OpenStudyRoomController {
         @PathVariable Long roomId,
         @AuthenticationPrincipal CustomUser user
     ) {
-        Member member = memberRepository.findByUsername(user.getUsername())
-            .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
+        Member member = memberRepository.findById(user.id)
+                .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
         
         RoomJoinResultDto result = openStudyRoomService.joinRoom(roomId, member);
         
@@ -108,8 +108,8 @@ public class OpenStudyRoomController {
         @PathVariable Long roomId,
         @AuthenticationPrincipal CustomUser user
     ) {
-        Member member = memberRepository.findByUsername(user.getUsername())
-            .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
+        Member member = memberRepository.findById(user.id)
+                .orElseThrow(() -> new IllegalStateException("사용자를 찾을 수 없습니다"));
         
         openStudyRoomService.leaveRoom(roomId, member);
         

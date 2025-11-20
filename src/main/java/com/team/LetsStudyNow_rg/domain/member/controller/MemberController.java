@@ -87,23 +87,6 @@ public class MemberController {
         return ResponseEntity.ok(profileDto);
     }
 
-    // 이메일 변경 api
-    @Operation(summary = "이메일 변경", description = "현재 로그인된 사용자의 이메일 주소를 변경합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "이메일 변경 성공"),
-            @ApiResponse(responseCode = "400", description = "비밀번호 불일치 또는 입력값 오류"),
-            @ApiResponse(responseCode = "409", description = "이미 사용 중인 이메일")
-    })
-    @PreAuthorize("isAuthenticated()")
-    @PutMapping("/update/email")
-    public ResponseEntity<String> updateEmail(
-            @Valid @RequestBody EmailChangeDto req,
-            @AuthenticationPrincipal CustomUser customUser
-    ) {
-        memberUpdateService.updateEmail(customUser, req);
-        return ResponseEntity.ok("이메일이 변경되었습니다.");
-    }
-
     // 회원 비밀번호 변경 api
     @Operation(summary = "비밀번호 변경", description = "현재 로그인된 사용자의 비밀번호를 변경합니다. (인증 필요)")
     @ApiResponses(value = {
