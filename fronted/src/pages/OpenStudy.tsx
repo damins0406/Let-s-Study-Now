@@ -48,11 +48,10 @@ const OpenStudy: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState<StudyRoom[]>([]);
-  const [currentRoom, setCurrentRoom] = useState<StudyRoom | null>(null); // ✅ 현재 참여 중인 방
+  const [currentRoom, setCurrentRoom] = useState<StudyRoom | null>(null);
   const [loading, setLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // ✅ API 스키마에 맞게 수정 (studyField를 먼저, maxParticipants를 나중에)
   const [newRoom, setNewRoom] = useState({
     title: "",
     description: "",
@@ -135,13 +134,16 @@ const OpenStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ API 스키마 순서에 맞게 전송
-      await openStudyAPI.createRoom({
+      const createdRoom = await openStudyAPI.createRoom({
         title: newRoom.title,
         description: newRoom.description || undefined,
         studyField: newRoom.studyField,
         maxParticipants: newRoom.maxParticipants,
       });
+
+      // ✅ 생성된 방 정보를 로컬 스토리지에 저장
+      localStorage.setItem("currentStudyRoom", JSON.stringify(createdRoom));
+      setCurrentRoom(createdRoom);
 
       toast({
         title: "성공",
@@ -156,9 +158,9 @@ const OpenStudy: React.FC = () => {
         maxParticipants: 4,
       });
 
-      loadRooms();
+      // ✅ 생성된 방 페이지로 바로 이동
+      navigate(`/room/${createdRoom.id}`);
     } catch (error: any) {
-      // ✅ 서버에서 보낸 에러 메시지 표시
       const errorMessage = error?.message || "스터디 방 생성에 실패했습니다.";
 
       toast({
@@ -199,19 +201,42 @@ const OpenStudy: React.FC = () => {
       // ✅ 스터디룸 페이지로 이동
       navigate(`/room/${roomId}`);
     } catch (error: any) {
-      // ✅ 409 Conflict - 이미 다른 방에 참여 중
-      if (error?.message?.includes("이미 다른 스터디룸에 참여")) {
+      console.error("Join room error:", error);
+
+      // ✅ "이미 참여 중" 에러 처리
+      if (
+        error?.message?.includes("이미 참여") ||
+        error?.message?.includes("이미 다른 스터디룸에 참여")
+      ) {
         try {
-          // ✅ 로컬 스토리지에서 현재 방 정보 가져오기
+          // ✅ 현재 참여 중인 방 확인
           let currentRoomData = currentRoom;
 
           if (!currentRoomData) {
             const savedRoom = localStorage.getItem("currentStudyRoom");
             if (savedRoom) {
-              currentRoomData = JSON.parse(savedRoom);
+              try {
+                currentRoomData = JSON.parse(savedRoom);
+              } catch (e) {
+                console.error("Failed to parse saved room:", e);
+                localStorage.removeItem("currentStudyRoom");
+              }
             }
           }
 
+          // ✅ 같은 방이면 바로 입장
+          if (currentRoomData && currentRoomData.id === roomId) {
+            console.log("Already in this room, navigating...");
+            toast({
+              title: "안내",
+              description: "이미 참여 중인 방입니다.",
+            });
+            navigate(`/room/${roomId}`);
+            setLoading(false);
+            return;
+          }
+
+          // ✅ 다른 방이면 확인 후 전환
           if (currentRoomData) {
             const shouldLeave = confirm(
               `이미 "${currentRoomData.title}" 방에 참여 중입니다.\n현재 방을 나가고 새로운 방에 참여하시겠습니까?`
@@ -223,6 +248,7 @@ const OpenStudy: React.FC = () => {
 
               // 로컬 스토리지 초기화
               localStorage.removeItem("currentStudyRoom");
+              setCurrentRoom(null);
 
               // 새로운 방 참여
               await openStudyAPI.joinRoom(roomId.toString());
@@ -245,7 +271,6 @@ const OpenStudy: React.FC = () => {
               navigate(`/room/${roomId}`);
             }
           } else {
-            // 현재 방 정보를 가져올 수 없는 경우
             toast({
               title: "안내",
               description:
@@ -304,29 +329,57 @@ const OpenStudy: React.FC = () => {
                   <Button
                     variant="outline"
                     onClick={async () => {
+                      if (!currentRoom || !user) return;
+
+                      const isOwner =
+                        currentRoom.creatorUsername === user.username;
+
                       try {
-                        await openStudyAPI.leaveRoom(currentRoom.id.toString());
+                        if (isOwner) {
+                          // ✅ 방장일 경우 방 삭제
+                          const ok = confirm(
+                            `"${currentRoom.title}" 방의 방장입니다.\n방을 삭제하면 모든 참여자가 방에서 나가게 됩니다.\n정말 삭제하시겠습니까?`
+                          );
 
-                        // ✅ 로컬 스토리지 초기화
+                          if (!ok) return;
+
+                          await openStudyAPI.deleteRoom(
+                            currentRoom.id.toString()
+                          );
+
+                          toast({
+                            title: "방 삭제 완료",
+                            description: "스터디 방이 삭제되었습니다.",
+                          });
+                        } else {
+                          // ✅ 일반 참여자 → 기존 로직 그대로
+                          await openStudyAPI.leaveRoom(
+                            currentRoom.id.toString()
+                          );
+
+                          toast({
+                            title: "나가기 완료",
+                            description: "스터디 방에서 나갔습니다.",
+                          });
+                        }
+
+                        // 공통 처리
                         localStorage.removeItem("currentStudyRoom");
-
-                        toast({
-                          title: "나가기 완료",
-                          description: "스터디 방에서 나갔습니다.",
-                        });
                         setCurrentRoom(null);
                         loadRooms();
                       } catch (error: any) {
                         toast({
                           title: "오류",
                           description:
-                            error?.message || "방 나가기에 실패했습니다.",
+                            error?.message || "처리 중 오류가 발생했습니다.",
                           variant: "destructive",
                         });
                       }
                     }}
                   >
-                    방 나가기
+                    {currentRoom?.creatorUsername === user?.username
+                      ? "방 삭제"
+                      : "방 나가기"}
                   </Button>
                 </div>
               </div>
