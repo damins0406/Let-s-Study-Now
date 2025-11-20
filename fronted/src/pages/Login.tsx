@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, EyeOff } from 'lucide-react';
-import Navbar from '@/components/Navbar';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(""); // ✅ username → email로 변경
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -18,17 +24,18 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username || !password) {
+
+    if (!email || !password) {
       return;
     }
 
     setLoading(true);
-    const success = await login(username, password);
+    // ✅ email을 전달 (AuthContext에서 username 필드로 변환)
+    const success = await login(email, password);
     setLoading(false);
 
     if (success) {
-      navigate('/');
+      navigate("/");
     }
   };
 
@@ -38,31 +45,34 @@ const Login: React.FC = () => {
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              로그인
+            </CardTitle>
             <CardDescription className="text-center">
               계정에 로그인하여 스터디를 시작하세요
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* ✅ 이메일 입력 필드 */}
               <div className="space-y-2">
-                <Label htmlFor="username">아이디</Label>
+                <Label htmlFor="email">이메일</Label>
                 <Input
-                  id="username"
-                  type="text"
-                  placeholder="아이디를 입력하세요"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="이메일을 입력하세요"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="password">비밀번호</Label>
                 <div className="relative">
                   <Input
                     id="password"
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     placeholder="비밀번호를 입력하세요"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -84,19 +94,22 @@ const Login: React.FC = () => {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading || !username || !password}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !email || !password}
               >
-                {loading ? '로그인 중...' : '로그인'}
+                {loading ? "로그인 중..." : "로그인"}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                계정이 없으신가요?{' '}
-                <Link to="/register" className="text-blue-600 hover:underline font-medium">
+                계정이 없으신가요?{" "}
+                <Link
+                  to="/register"
+                  className="text-blue-600 hover:underline font-medium"
+                >
                   회원가입
                 </Link>
               </p>

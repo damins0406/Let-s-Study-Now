@@ -30,11 +30,11 @@ const STUDY_FIELDS = [
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
-    username: "",
-    email: "",
+    email: "", // ✅ 로그인 ID (이메일)
+    username: "", // ✅ 닉네임
     password: "",
     confirmPassword: "",
-    age: "",
+    // ❌ age 제거
     bio: "",
     studyFields: [] as string[],
   });
@@ -114,19 +114,20 @@ const Register: React.FC = () => {
     setLoading(true);
 
     const payload: any = {
-      email: formData.email,
-      username: formData.username,
+      email: formData.email, // ✅ 로그인 ID
+      username: formData.username, // ✅ 닉네임
       password: formData.password,
       checkPassword: formData.confirmPassword,
       studyField: formData.studyFields[0], // 배열의 첫 번째 값만 전달
       checkPw: true,
     };
 
-    // ✅ 선택적 필드는 값이 있을 때만 추가
-    if (formData.age) {
-      payload.age = parseInt(formData.age);
-    }
+    // ❌ age 필드 제거
+    // if (formData.age) {
+    //   payload.age = parseInt(formData.age);
+    // }
 
+    // ✅ 선택적 필드는 값이 있을 때만 추가
     if (formData.bio) {
       payload.bio = formData.bio;
     }
@@ -216,8 +217,26 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
+              {/* ✅ 이메일 (로그인 ID) */}
               <div className="space-y-2">
-                <Label htmlFor="username">아이디 *</Label>
+                <Label htmlFor="email">이메일 (로그인 ID) *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="example@email.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  이메일은 로그인 시 사용됩니다.
+                </p>
+              </div>
+
+              {/* ✅ 닉네임 (username) */}
+              <div className="space-y-2">
+                <Label htmlFor="username">닉네임 *</Label>
                 <Input
                   id="username"
                   name="username"
@@ -228,21 +247,12 @@ const Register: React.FC = () => {
                   minLength={2}
                   maxLength={12}
                 />
+                <p className="text-xs text-gray-500">
+                  닉네임은 다른 사용자에게 표시됩니다.
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">이메일 *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="이메일을 입력하세요"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
+              {/* 비밀번호 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="password">비밀번호 *</Label>
@@ -304,6 +314,7 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
+              {/* 공부 분야 */}
               <div className="space-y-2">
                 <Label>관심 공부 분야 * (최소 1개, 최대 5개)</Label>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -328,6 +339,7 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
+              {/* 자기소개 */}
               <div className="space-y-2">
                 <Label htmlFor="bio">자기소개 (최대 200자)</Label>
                 <Textarea
