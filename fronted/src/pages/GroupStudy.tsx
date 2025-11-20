@@ -96,14 +96,44 @@ const GroupStudy: React.FC = () => {
           sessionError?.message
         );
 
-        // ✅ user.id를 안전하게 숫자로 변환
-        const leaderId = Number(user.id);
+        // ✅ user 객체 확인 (디버깅용)
+        console.log("user object:", user);
+
+        // ✅ user.id가 없으면 username으로 시도
+        let leaderId: number;
+
+        if (user.id) {
+          leaderId = Number(user.id);
+        } else if (user.username) {
+          // username을 leaderId로 사용할 수 없으므로 에러 처리
+          console.error(
+            "user.id is undefined, backend should return user ID in /api/profile"
+          );
+          toast({
+            title: "오류",
+            description:
+              "사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.",
+            variant: "destructive",
+          });
+          return;
+        } else {
+          console.error("Both user.id and user.username are undefined");
+          toast({
+            title: "오류",
+            description: "사용자 정보가 없습니다. 다시 로그인해주세요.",
+            variant: "destructive",
+          });
+          return;
+        }
 
         if (isNaN(leaderId)) {
           console.error("user object:", user);
-          throw new Error(
-            `유효하지 않은 사용자 ID입니다. user.id = ${user.id}`
-          );
+          toast({
+            title: "오류",
+            description: `유효하지 않은 사용자 ID입니다. user.id = ${user.id}`,
+            variant: "destructive",
+          });
+          return;
         }
 
         console.log("Attempting with leaderId:", leaderId);
@@ -155,17 +185,41 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ user.id를 안전하게 숫자로 변환
-      const leaderId = Number(user.id);
+      // ✅ 세션 기반으로 먼저 시도 (leaderId 없이)
+      try {
+        await groupAPI.createGroup({
+          groupName: newGroup.groupName,
+          // leaderId는 백엔드에서 세션에서 가져옴
+        } as any);
+      } catch (sessionError: any) {
+        // ✅ 세션 기반 실패 시 leaderId 직접 전달
+        if (!user.id) {
+          toast({
+            title: "오류",
+            description: "사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
 
-      if (isNaN(leaderId)) {
-        throw new Error("유효하지 않은 사용자 ID입니다.");
+        const leaderId = Number(user.id);
+
+        if (isNaN(leaderId)) {
+          toast({
+            title: "오류",
+            description: "유효하지 않은 사용자 ID입니다.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        await groupAPI.createGroup({
+          groupName: newGroup.groupName,
+          leaderId: leaderId,
+        });
       }
-
-      await groupAPI.createGroup({
-        groupName: newGroup.groupName,
-        leaderId: leaderId,
-      });
 
       toast({ title: "성공", description: "그룹이 생성되었습니다." });
       setCreateGroupDialogOpen(false);

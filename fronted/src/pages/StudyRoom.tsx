@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -15,22 +14,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
 import { openStudyAPI, studyRoomAPI } from "@/lib/api";
 import {
   Users,
   Clock,
   Send,
-  Paperclip,
   Image as ImageIcon,
-  Download,
   LogOut,
   Play,
   Pause,
   Square,
   Copy,
-  QrCode,
   TrendingUp,
+  ChevronRight,
 } from "lucide-react";
 
 interface Participant {
@@ -38,21 +43,18 @@ interface Participant {
   username: string;
   profileImage?: string;
   level: number;
-  title: string;
   status: "studying" | "resting" | "away";
   statusMessage: string;
-  statusDuration: number; // 현재 상태 지속 시간 (초)
-  totalTime: number; // 총 참여 시간 (초)
+  statusDuration: number;
+  totalTime: number;
 }
 
 interface ChatMessage {
   id: string;
-  type: "text" | "image" | "file" | "system";
+  type: "text" | "image" | "system";
   sender?: string;
   content: string;
   imageUrl?: string;
-  fileName?: string;
-  fileSize?: number;
   timestamp: Date;
 }
 
@@ -61,8 +63,7 @@ const StudyRoom: React.FC = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const hasJoinedRef = useRef(false); // ✅ 중복 참여 방지
+  const hasJoinedRef = useRef(false);
 
   // Room Info
   const [roomInfo, setRoomInfo] = useState({
@@ -70,9 +71,9 @@ const StudyRoom: React.FC = () => {
     studyField: "프로그래밍",
     currentParticipants: 3,
     maxParticipants: 6,
-    remainingTime: 7530, // 초 단위 (2시간 5분 30초)
-    createdBy: "", // ✅ 방장 ID
-    creatorUsername: "", // ✅ 방장 닉네임
+    remainingTime: 7530,
+    createdBy: "",
+    creatorUsername: "",
   });
 
   // Participants
@@ -81,31 +82,19 @@ const StudyRoom: React.FC = () => {
       id: "1",
       username: "김철수",
       level: 5,
-      title: "🎯 스터디 마스터",
       status: "studying",
       statusMessage: "알고리즘 문제 풀이 중...",
-      statusDuration: 1500, // 25분
-      totalTime: 5025, // 1시간 23분 45초
+      statusDuration: 1500,
+      totalTime: 5025,
     },
     {
       id: "2",
       username: "이영희",
       level: 3,
-      title: "⭐ 꾸준한 도전자",
       status: "resting",
       statusMessage: "잠깐 쉬는 중",
-      statusDuration: 300, // 5분
-      totalTime: 7893, // 2시간 11분 33초
-    },
-    {
-      id: "3",
-      username: "박민수",
-      level: 2,
-      title: "📚 열정 학습자",
-      status: "studying",
-      statusMessage: "화이팅!",
-      statusDuration: 900, // 15분
-      totalTime: 3245, // 54분 5초
+      statusDuration: 300,
+      totalTime: 7893,
     },
   ]);
 
@@ -114,21 +103,8 @@ const StudyRoom: React.FC = () => {
     {
       id: "1",
       type: "system",
-      content: "김철수님이 입장했습니다.",
-      timestamp: new Date(Date.now() - 7200000),
-    },
-    {
-      id: "2",
-      type: "text",
-      sender: "김철수",
-      content: "안녕하세요! 오늘도 화이팅해요!",
-      timestamp: new Date(Date.now() - 7100000),
-    },
-    {
-      id: "3",
-      type: "system",
-      content: "이영희님이 입장했습니다.",
-      timestamp: new Date(Date.now() - 7000000),
+      content: "스터디룸에 입장했습니다.",
+      timestamp: new Date(),
     },
   ]);
   const [messageInput, setMessageInput] = useState("");
@@ -149,14 +125,15 @@ const StudyRoom: React.FC = () => {
 
   // Today's Stats
   const [todayStats, setTodayStats] = useState({
-    totalStudyTime: 9240, // 2시간 34분
-    studySessions: 4,
-    restSessions: 3,
+    totalStudyTime: 0,
+    studySessions: 0,
+    restSessions: 0,
   });
 
   // Dialogs
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
 
   // 시간 포맷 함수
   const formatTime = (seconds: number) => {
@@ -185,8 +162,6 @@ const StudyRoom: React.FC = () => {
 
     const joinRoom = async () => {
       try {
-        // TODO: 실제 API 호출로 방 정보 로드 및 참여 처리
-        // await studyRoomAPI.getRoom(roomId);
         hasJoinedRef.current = true;
         console.log("Joined room:", roomId);
       } catch (error) {
@@ -202,27 +177,21 @@ const StudyRoom: React.FC = () => {
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (roomId && hasJoinedRef.current) {
-        // 동기적으로 방 나가기 요청 (sendBeacon 사용)
         const baseURL =
           import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
         const url = `${baseURL}/api/open-study/rooms/${roomId}/leave`;
 
-        // sendBeacon은 페이지를 떠날 때도 요청을 보장
-        // credentials 포함을 위해 fetch keepalive 사용
         fetch(url, {
           method: "POST",
           credentials: "include",
           keepalive: true,
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
         }).catch((err) => console.error("Failed to leave room:", err));
       }
     };
 
     const handlePopState = async () => {
-      // 뒤로가기 감지
       if (roomId && hasJoinedRef.current) {
         try {
           await leaveRoom();
@@ -232,16 +201,13 @@ const StudyRoom: React.FC = () => {
       }
     };
 
-    // 이벤트 리스너 등록
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("popstate", handlePopState);
 
-    // cleanup
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("popstate", handlePopState);
 
-      // 컴포넌트 언마운트 시 방 나가기
       if (roomId && hasJoinedRef.current) {
         leaveRoom();
       }
@@ -253,18 +219,13 @@ const StudyRoom: React.FC = () => {
     if (!roomId) return;
 
     try {
-      // ✅ 실제 API 호출 (오픈 스터디)
       await openStudyAPI.leaveRoom(roomId);
-
-      // ✅ 로컬 스토리지 초기화
       localStorage.removeItem("currentStudyRoom");
-
       hasJoinedRef.current = false;
       console.log("Left room:", roomId);
     } catch (error) {
       console.error("Failed to leave room:", error);
 
-      // 그룹 스터디인 경우도 시도
       try {
         await studyRoomAPI.leaveRoom(roomId);
         localStorage.removeItem("currentStudyRoom");
@@ -280,7 +241,6 @@ const StudyRoom: React.FC = () => {
     if (!roomId) return;
 
     try {
-      // ✅ 오픈 스터디 방 삭제 시도
       try {
         await openStudyAPI.deleteRoom(roomId);
         console.log("Open study room deleted:", roomId);
@@ -291,11 +251,9 @@ const StudyRoom: React.FC = () => {
         });
         return;
       } catch (openError) {
-        // 오픈 스터디 방이 아니면 그룹 스터디 시도
         console.log("Not an open study room, trying group room...");
       }
 
-      // ✅ 그룹 스터디 방 삭제 시도
       await studyRoomAPI.deleteRoom(roomId);
       console.log("Group study room deleted:", roomId);
 
@@ -313,13 +271,12 @@ const StudyRoom: React.FC = () => {
     }
   };
 
-  // 타이머 로직
+  // ✅ 타이머 로직
   useEffect(() => {
     if (timerRunning && !timerPaused) {
       const interval = setInterval(() => {
         setTimerSeconds((prev) => {
           if (prev <= 1) {
-            // 타이머 종료
             handleTimerComplete();
             return 0;
           }
@@ -340,7 +297,6 @@ const StudyRoom: React.FC = () => {
     setCurrentTimerType(newType);
     setTimerSeconds(newSeconds);
 
-    // 경험치 보너스 +10
     toast({
       title: "🎉 타이머 완료!",
       description: `${
@@ -348,7 +304,6 @@ const StudyRoom: React.FC = () => {
       } 세션 완료! +10 경험치`,
     });
 
-    // 통계 업데이트
     if (currentTimerType === "study") {
       setTodayStats((prev) => ({
         ...prev,
@@ -362,7 +317,6 @@ const StudyRoom: React.FC = () => {
       }));
     }
 
-    // 시스템 메시지 추가
     addSystemMessage(
       `타이머가 ${currentTimerType === "study" ? "공부" : "휴식"} 세션에서 ${
         newType === "study" ? "공부" : "휴식"
@@ -395,14 +349,44 @@ const StudyRoom: React.FC = () => {
     );
   };
 
-  // 상태 전환
+  // ✅ 상태 전환 (자동 타이머 ON/OFF)
   const handleStatusToggle = (newStatus: "studying" | "resting") => {
+    const previousStatus = myStatus;
     setMyStatus(newStatus);
+
+    // ✅ 상태에 맞춰 타이머 타입 변경
+    if (newStatus === "studying") {
+      setCurrentTimerType("study");
+      setTimerSeconds(studyMinutes * 60);
+
+      // ✅ 공부 모드로 전환 시 자동 타이머 시작
+      if (!timerRunning) {
+        setTimerRunning(true);
+        setTimerPaused(false);
+      }
+    } else {
+      setCurrentTimerType("rest");
+      setTimerSeconds(restMinutes * 60);
+
+      // ✅ 휴식 모드로 전환 시 타이머 중지
+      setTimerRunning(false);
+      setTimerPaused(false);
+    }
+
     addSystemMessage(
       `${user?.username}님이 ${
         newStatus === "studying" ? "공부" : "휴식"
       } 모드로 전환했습니다.`
     );
+
+    toast({
+      title: previousStatus === "studying" ? "휴식 시작" : "공부 시작",
+      description: `${
+        newStatus === "studying"
+          ? "타이머가 시작되었습니다"
+          : "타이머가 중지되었습니다"
+      }`,
+    });
   };
 
   // 상태 메시지 업데이트
@@ -442,7 +426,7 @@ const StudyRoom: React.FC = () => {
     setMessages((prev) => [...prev, newMessage]);
   };
 
-  // 이미지 업로드
+  // ✅ 이미지 업로드
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -456,7 +440,7 @@ const StudyRoom: React.FC = () => {
       return;
     }
 
-    // TODO: 실제로는 서버에 업로드하고 URL을 받아야 함
+    // 이미지 미리보기 생성
     const imageUrl = URL.createObjectURL(file);
 
     const newMessage: ChatMessage = {
@@ -469,33 +453,11 @@ const StudyRoom: React.FC = () => {
     };
 
     setMessages((prev) => [...prev, newMessage]);
-  };
 
-  // 파일 업로드
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 50 * 1024 * 1024) {
-      toast({
-        title: "오류",
-        description: "파일 크기는 50MB를 초과할 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: "file",
-      sender: user?.username || "익명",
-      content: "",
-      fileName: file.name,
-      fileSize: file.size,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    toast({
+      title: "이미지 전송",
+      description: "이미지가 전송되었습니다.",
+    });
   };
 
   // 초대 링크 복사
@@ -512,7 +474,6 @@ const StudyRoom: React.FC = () => {
   const handleExitRoom = async () => {
     if (!roomId) return;
 
-    // ✅ 방장 확인 (createdBy 또는 creatorUsername으로 확인)
     const isCreator =
       user &&
       (roomInfo.createdBy === user.id ||
@@ -520,19 +481,30 @@ const StudyRoom: React.FC = () => {
 
     if (isCreator) {
       const confirmDelete = confirm(
-        "방장이 나가면 방이 삭제됩니다.\n정말로 방을 나가시겠습니까?"
+        "방장이 나가면 방이 삭제됩니다.\n정말로 방을 삭제하시겠습니까?"
       );
 
       if (!confirmDelete) {
         return;
       }
 
-      // 방장이 나가면 방 삭제 시도
       await deleteRoom();
+    } else {
+      // ✅ 일반 참여자는 leaveRoom 호출
+      await leaveRoom();
+
+      toast({
+        title: "안내",
+        description: "방을 나갔습니다.",
+      });
     }
 
-    await leaveRoom();
-    navigate("/open-study");
+    localStorage.removeItem("currentStudyRoom");
+    hasJoinedRef.current = false;
+
+    setTimeout(() => {
+      navigate("/open-study");
+    }, 100);
   };
 
   // 상태별 색상
@@ -574,12 +546,80 @@ const StudyRoom: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="flex items-center text-gray-600">
-            <Users className="w-4 h-4 mr-2" />
-            <span className="font-medium">
-              {roomInfo.currentParticipants}/{roomInfo.maxParticipants}
-            </span>
-          </div>
+          {/* ✅ 참여자 수 클릭 시 목록 팝업 */}
+          <Sheet open={participantsOpen} onOpenChange={setParticipantsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center">
+                <Users className="w-4 h-4 mr-2" />
+                <span className="font-medium">
+                  {roomInfo.currentParticipants}/{roomInfo.maxParticipants}
+                </span>
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>
+                  참여자 목록 ({participants.length}/{roomInfo.maxParticipants})
+                </SheetTitle>
+                <SheetDescription>
+                  현재 스터디룸에 참여 중인 멤버들입니다
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-4">
+                {participants.map((participant) => (
+                  <Card key={participant.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-3">
+                        <Avatar>
+                          <AvatarImage src={participant.profileImage} />
+                          <AvatarFallback>
+                            {participant.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-medium text-gray-900">
+                              {participant.username}
+                            </p>
+                            <Badge variant="outline" className="text-xs">
+                              Lv.{participant.level}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center space-x-2 mt-2">
+                            <div
+                              className={`w-2 h-2 rounded-full ${getStatusColor(
+                                participant.status
+                              )}`}
+                            />
+                            <span className="text-sm text-gray-600">
+                              {getStatusText(participant.status)} (
+                              {formatTime(participant.statusDuration)})
+                            </span>
+                          </div>
+
+                          {participant.statusMessage && (
+                            <p className="text-sm text-gray-500 mt-1 italic truncate">
+                              "{participant.statusMessage}"
+                            </p>
+                          )}
+
+                          <div className="flex items-center text-xs text-gray-500 mt-2">
+                            <Clock className="w-3 h-3 mr-1" />총{" "}
+                            {formatTime(participant.totalTime)}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+
           <Button
             variant="outline"
             size="sm"
@@ -647,30 +687,6 @@ const StudyRoom: React.FC = () => {
                           />
                         </div>
                       )}
-
-                      {message.type === "file" && (
-                        <div className="bg-white rounded-lg px-4 py-3 shadow-sm flex items-center justify-between max-w-md">
-                          <div className="flex items-center space-x-3">
-                            <Paperclip className="w-5 h-5 text-gray-400" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">
-                                {message.fileName}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {(
-                                  (message.fileSize || 0) /
-                                  1024 /
-                                  1024
-                                ).toFixed(2)}{" "}
-                                MB
-                              </p>
-                            </div>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <Download className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -682,20 +698,6 @@ const StudyRoom: React.FC = () => {
           {/* 채팅 입력 */}
           <div className="border-t bg-white p-4">
             <div className="flex items-center space-x-2">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
-                onChange={handleFileUpload}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Paperclip className="w-5 h-5" />
-              </Button>
               <input
                 type="file"
                 className="hidden"
@@ -727,7 +729,7 @@ const StudyRoom: React.FC = () => {
           <div className="border-t bg-gray-50 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">나의 컨트롤</h3>
 
-            {/* 상태 토글 */}
+            {/* ✅ 상태 토글 (자동 타이머) */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <Button
                 variant={myStatus === "studying" ? "default" : "outline"}
@@ -878,65 +880,6 @@ const StudyRoom: React.FC = () => {
             </Card>
           </div>
         </div>
-
-        {/* 참여자 목록 */}
-        <div className="w-80 border-l bg-white overflow-y-auto">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-gray-900 flex items-center justify-between">
-              <span>
-                👥 참여자 ({participants.length}/{roomInfo.maxParticipants})
-              </span>
-            </h3>
-          </div>
-
-          <div className="p-4 space-y-4">
-            {participants.map((participant) => (
-              <Card key={participant.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start space-x-3">
-                    <Avatar>
-                      <AvatarImage src={participant.profileImage} />
-                      <AvatarFallback>
-                        {participant.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-xs font-medium text-purple-600">
-                          {participant.title}
-                        </span>
-                      </div>
-                      <p className="font-medium text-gray-900 truncate">
-                        {participant.username}
-                      </p>
-                      <div className="flex items-center space-x-2 mt-2">
-                        <div
-                          className={`w-2 h-2 rounded-full ${getStatusColor(
-                            participant.status
-                          )}`}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {getStatusText(participant.status)} (
-                          {formatTime(participant.statusDuration)})
-                        </span>
-                      </div>
-                      {participant.statusMessage && (
-                        <p className="text-sm text-gray-500 mt-1 italic truncate">
-                          "{participant.statusMessage}"
-                        </p>
-                      )}
-                      <div className="flex items-center text-xs text-gray-500 mt-2">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {formatTime(participant.totalTime)}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* 초대 다이얼로그 */}
@@ -961,18 +904,6 @@ const StudyRoom: React.FC = () => {
                 <Button onClick={handleCopyInviteLink}>
                   <Copy className="w-4 h-4" />
                 </Button>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <Label className="text-sm font-medium mb-2">QR 코드</Label>
-              <div className="flex justify-center mt-2">
-                <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <QrCode className="w-32 h-32 text-gray-400" />
-                  <p className="text-xs text-gray-500 mt-2">
-                    QR 코드 생성 예정
-                  </p>
-                </div>
               </div>
             </div>
           </div>
