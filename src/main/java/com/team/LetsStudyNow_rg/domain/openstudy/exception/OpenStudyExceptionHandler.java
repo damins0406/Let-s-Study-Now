@@ -51,4 +51,14 @@ public class OpenStudyExceptionHandler {
                 "error", e.getMessage()
             ));
     }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e) {
+        log.warn("잘못된 요청 파라미터: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+    }
 }
