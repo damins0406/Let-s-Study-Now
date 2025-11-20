@@ -123,28 +123,30 @@ export const apiClient = new ApiClient(API_BASE_URL);
 // ✅ 타입 정의
 //
 export interface User {
-  id: string;
-  username: string;
-  email: string;
-  age?: number;
+  id?: string; // ✅ 선택적 (백엔드가 반환 안 할 수 있음)
+  email: string; // ✅ 로그인 ID로 사용
+  username: string; // ✅ 닉네임 (표시용)
+  level?: number; // ✅ 추가
+  exp?: number; // ✅ 추가 (경험치)
   profileImageUrl?: string;
+  profileImage?: string;
   bio?: string;
   studyFields?: string[];
+  studyField?: string;
   notificationEnabled?: boolean;
 }
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface RegisterRequest {
-  email: string;
-  username: string;
+  email: string; // ✅ 로그인 ID
+  username: string; // ✅ 닉네임
   password: string;
   checkPassword: string;
-  age?: number;
-  profileImageFile?: File | string; // ✅ 파일 업로드 대응
+  profileImageFile?: File | string;
   studyField: string;
   bio?: string;
   checkPw: boolean;
@@ -248,16 +250,15 @@ export const groupAPI = {
   // GET /api/groups - 전체 그룹 목록
   getAllGroups: () => apiClient.get<Group[]>("/api/groups"),
 
-  // GET /api/groups/my - 내 그룹 목록
-  // ✅ 옵션 1: leaderId를 쿼리로 전달
+  // GET /api/groups/my - 내 그룹 목록 (세션 기반)
+  getMyGroups: () => apiClient.get<Group[]>("/api/groups/my"),
+
+  // GET /api/groups/my - 내 그룹 목록 (leaderId 명시)
   getMyGroupsWithId: (leaderId: number) =>
     apiClient.get<Group[]>(`/api/groups/my?leaderId=${leaderId}`),
 
-  // ✅ 옵션 2: 세션에서 자동으로 leaderId 추출 (백엔드가 지원하는 경우)
-  getMyGroups: () => apiClient.get<Group[]>("/api/groups/my"),
-
   // POST /api/groups - 그룹 생성
-  createGroup: (data: { groupName: string; leaderId: number }) =>
+  createGroup: (data: { groupName: string; leaderId?: number }) =>
     apiClient.post<Group>("/api/groups", data),
 
   // GET /api/groups/{groupId} - 그룹 조회
