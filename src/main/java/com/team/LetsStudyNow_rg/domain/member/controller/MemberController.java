@@ -6,6 +6,8 @@ import com.team.LetsStudyNow_rg.global.auth.CustomUser;
 import com.team.LetsStudyNow_rg.domain.member.service.MemberService;
 import com.team.LetsStudyNow_rg.domain.member.service.MemberUpdateService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,10 +15,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "1. 사용자 인증/계정 API", description = "회원가입, 로그인, 프로필 관리 등 사용자 계정 관련 API")
 @RestController
@@ -78,12 +82,14 @@ public class MemberController {
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     @PreAuthorize("isAuthenticated()")
-    @PatchMapping("/update/profile")
+    @PatchMapping(value = "/update/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProfileDto> updateProfile(
-            @Valid @RequestBody ProfileUpdateDto req,
+            @Parameter(content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
+            @RequestPart("data") @Valid ProfileUpdateDto req,
+            @RequestPart(value = "image", required = false) MultipartFile image,
             @AuthenticationPrincipal CustomUser customUser
     ) {
-        ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req);
+        ProfileDto profileDto = memberUpdateService.updateProfileService(customUser, req, image);
         return ResponseEntity.ok(profileDto);
     }
 

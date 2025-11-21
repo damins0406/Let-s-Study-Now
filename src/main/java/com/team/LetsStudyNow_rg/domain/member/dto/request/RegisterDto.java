@@ -19,7 +19,6 @@ public record RegisterDto(
         @NotBlank
         String checkPassword,
 
-        String profileImageFile,
         String studyField,
         String bio
 ) {

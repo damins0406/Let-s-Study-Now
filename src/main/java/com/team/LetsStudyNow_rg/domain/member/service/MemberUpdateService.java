@@ -9,27 +9,47 @@ import com.team.LetsStudyNow_rg.domain.member.exception.MemberNotFoundException;
 import com.team.LetsStudyNow_rg.domain.member.exception.PasswordMismatchException;
 import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
 import com.team.LetsStudyNow_rg.global.auth.CustomUser;
+import com.team.LetsStudyNow_rg.global.s3.S3Service;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
 public class MemberUpdateService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final S3Service s3Service;
+
+    @Value("${custom.s3.default-image-url}")
+    private String defaultProfileImageUrl;
 
     // 마이프로필 수정 로직
     @Transactional
-    public ProfileDto updateProfileService(CustomUser customUser, ProfileUpdateDto req) {
-        // 커스텀 예외 적용
+    public ProfileDto updateProfileService(CustomUser customUser, ProfileUpdateDto req, MultipartFile image) {
         Member user = memberRepository.findById(customUser.id)
                 .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
-        if (req.profileImage() != null) {
-            user.setProfileImage(req.profileImage());
+        // 이미지 업로드
+        if (image != null && !image.isEmpty()) {
+            String oldImageUrl = user.getProfileImage();
+
+            // 기본 프로필이 아닌 이전 이미지는 삭제
+            if (oldImageUrl != null && !oldImageUrl.equals(defaultProfileImageUrl)) {
+                s3Service.deleteFile(oldImageUrl);
+            }
+
+            // 새 이미지 업로드 및 DB 업데이트
+            String newImageUrl = s3Service.uploadFile(image, "profile");
+            user.setProfileImage(newImageUrl);
+
         }
+
         if (req.studyField() != null) {
             user.setStudyField(req.studyField());
         }

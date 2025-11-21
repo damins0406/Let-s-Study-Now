@@ -38,14 +38,14 @@ public class Member {
     private Integer totalExp = 0; // 누적 경험치
 
     @Builder
-    public Member(String email, String username, String password, Role role, String studyField, String bio) {
+    public Member(String email, String username, String password, Role role, String studyField, String bio, String profileImage) {
         this.email = email;
         this.username = username;
         this.password = password;
         this.role = role;
         this.studyField = studyField;
         this.bio = bio;
-        // 초기값 설정
+        this.profileImage = profileImage;
         this.level = 1;
         this.totalExp = 0;
     }
