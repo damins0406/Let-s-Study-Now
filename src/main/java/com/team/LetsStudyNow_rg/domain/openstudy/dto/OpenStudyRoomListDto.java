@@ -47,11 +47,21 @@ public record OpenStudyRoomListDto(
      * @return 변환된 DTO
      */
     public static OpenStudyRoomListDto from(OpenStudyRoom room) {
+        if (room == null) {
+            throw new IllegalArgumentException("room이 null입니다");
+        }
+        if (room.getStudyField() == null) {
+            throw new IllegalStateException("room.studyField가 null입니다. roomId: " + room.getId());
+        }
+        if (room.getCreator() == null) {
+            throw new IllegalStateException("room.creator가 null입니다. roomId: " + room.getId());
+        }
+        
         return new OpenStudyRoomListDto(
             room.getId(),
             room.getTitle(),
             room.getDescription(),
-            room.getStudyField(),
+            room.getStudyField().getDescription(),
             room.getCurrentParticipants(),
             room.getMaxParticipants(),
             room.isFull(),

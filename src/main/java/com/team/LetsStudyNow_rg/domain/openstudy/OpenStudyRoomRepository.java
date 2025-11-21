@@ -12,15 +12,18 @@ import java.util.List;
 public interface OpenStudyRoomRepository extends JpaRepository<OpenStudyRoom, Long> {
     
     /**
-     * 활성 상태인 방 목록 조회 (최신순)
-     */
-    List<OpenStudyRoom> findByStatusOrderByCreatedAtDesc(RoomStatus status);
-    
-    /**
      * 여러 상태의 방 목록 조회 (최신순)
      * ACTIVE + PENDING_DELETE 방 모두 조회용
      */
     List<OpenStudyRoom> findByStatusInOrderByCreatedAtDesc(List<RoomStatus> statuses);
+    
+    /**
+     * 공부 분야별 방 목록 조회 (최신순)
+     */
+    List<OpenStudyRoom> findByStudyFieldAndStatusInOrderByCreatedAtDesc(
+        StudyField studyField, 
+        List<RoomStatus> statuses
+    );
     
     /**
      * 삭제 예정 시간이 지난 방 조회

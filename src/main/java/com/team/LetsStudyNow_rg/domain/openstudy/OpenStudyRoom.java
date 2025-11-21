@@ -35,9 +35,10 @@ public class OpenStudyRoom {
     @Column(length = 200)
     private String description;
     
-    // 공부 분야 (예: 프로그래밍, 영어 등)
+    // 공부 분야 (DB에저장: "프로그래밍", "영어", "기타" 등)
+    @Convert(converter = StudyFieldConverter.class)
     @Column(nullable = false)
-    private String studyField;
+    private StudyField studyField;
     
     // 방 최대 인원 (2~10명)
     @Column(nullable = false)

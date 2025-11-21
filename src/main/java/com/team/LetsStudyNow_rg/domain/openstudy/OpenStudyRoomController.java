@@ -12,22 +12,48 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Tag(name = "2. 오픈 스터디 룸 API", description = "오픈 스터디 방 생성, 조회, 참여, 나가기 등 오픈 스터디 관련 API")
 @RestController
 @RequestMapping("/api/open-study")
 @RequiredArgsConstructor
+@Slf4j
 public class OpenStudyRoomController {
     
     private final OpenStudyRoomService openStudyRoomService;
     private final MemberRepository memberRepository;
+    
+    /**
+     * 공부 분야 목록 조회
+     */
+    @Operation(
+        summary = "공부 분야 목록 조회", 
+        description = "오픈 스터디 방 생성 및 필터링에 사용 가능한 공부 분야 목록을 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "공부 분야 목록 조회 성공")
+    })
+    @GetMapping("/study-fields")
+    public ResponseEntity<?> getStudyFields() {
+        List<String> studyFields = Arrays.stream(StudyField.values())
+            .map(StudyField::getDescription)
+            .collect(Collectors.toList());
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "studyFields", studyFields
+        ));
+    }
     
     /**
      * 오픈 스터디 방 생성
@@ -57,17 +83,52 @@ public class OpenStudyRoomController {
     }
     
     /**
-     * 활성 방 목록 조회
+     * 활성 방 목록 조회 (공부 분야 필터링 지원)
      */
-    @Operation(summary = "활성 방 목록 조회", description = "현재 활성화된 오픈 스터디 방 목록을 조회합니다.")
+    @Operation(
+        summary = "활성 방 목록 조회 (필터링 지원)", 
+        description = "현재 활성화된 오픈 스터디 방 목록을 조회합니다. studyField 파라미터로 공부 분야별 필터링이 가능하며, 생략 시 최신 생성 순으로 전체 조회합니다."
+    )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "방 목록 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 공부 분야)")
     })
     @GetMapping("/rooms")
-    public ResponseEntity<List<OpenStudyRoomListDto>> getRoomList() {
-        List<OpenStudyRoomListDto> rooms = openStudyRoomService.getRoomList();
-        return ResponseEntity.ok(rooms);
+    public ResponseEntity<?> getRoomList(
+        @RequestParam(required = false) String studyField
+    ) {
+        try {
+            log.info("방 목록 조회 요청 - studyField: {}", studyField);
+            List<OpenStudyRoomListDto> rooms = openStudyRoomService.getRoomListByStudyField(studyField);
+            
+            log.info("방 목록 조회 완료 - 결과 개수: {}", rooms.size());
+            
+            // 조회 결과가 없을 경우 안내 메시지
+            if (rooms.isEmpty()) {
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "조회된 스터디 방이 없습니다.",
+                    "rooms", rooms
+                ));
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "rooms", rooms
+            ));
+        } catch (IllegalArgumentException e) {
+            log.error("잘못된 요청: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("방 목록 조회 중 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "success", false,
+                "message", "방 목록 조회 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
     }
     
     /**
