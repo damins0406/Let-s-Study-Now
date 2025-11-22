@@ -62,20 +62,18 @@ const OpenStudy: React.FC = () => {
   useEffect(() => {
     loadRooms();
     if (user) {
-      // ✅ 로컬 스토리지에서 현재 방 정보 복원
-      const savedRoom = localStorage.getItem("currentStudyRoom");
+      const savedRoom = localStorage.getItem("currentOpenStudyRoom");
       if (savedRoom) {
         try {
           const room = JSON.parse(savedRoom);
           setCurrentRoom(room);
         } catch (error) {
           console.error("Failed to parse saved room:", error);
-          localStorage.removeItem("currentStudyRoom");
+          localStorage.removeItem("currentOpenStudyRoom");
         }
       }
     } else {
-      // 로그아웃 시 로컬 스토리지 초기화
-      localStorage.removeItem("currentStudyRoom");
+      localStorage.removeItem("currentOpenStudyRoom");
       setCurrentRoom(null);
     }
   }, [user]);
@@ -83,14 +81,26 @@ const OpenStudy: React.FC = () => {
   const loadRooms = async () => {
     setLoading(true);
     try {
-      const roomsData = await openStudyAPI.getRooms();
+      const response = await openStudyAPI.getRooms();
+      console.log("OpenStudy API Response:", response);
+
+      let roomsData: StudyRoom[] = [];
+
+      if (Array.isArray(response)) {
+        roomsData = response;
+      } else if (response && typeof response === "object") {
+        roomsData = response.content || response.data || response.rooms || [];
+      }
+
       setRooms(roomsData);
     } catch (error) {
+      console.error("loadRooms error:", error);
       toast({
         title: "오류",
         description: "스터디 방 목록을 불러오는데 실패했습니다.",
         variant: "destructive",
       });
+      setRooms([]);
     }
     setLoading(false);
   };
@@ -134,16 +144,48 @@ const OpenStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      const createdRoom = await openStudyAPI.createRoom({
+      const response = await openStudyAPI.createRoom({
         title: newRoom.title,
         description: newRoom.description || undefined,
         studyField: newRoom.studyField,
         maxParticipants: newRoom.maxParticipants,
       });
 
-      // ✅ 생성된 방 정보를 로컬 스토리지에 저장
-      localStorage.setItem("currentStudyRoom", JSON.stringify(createdRoom));
-      setCurrentRoom(createdRoom);
+      console.log("Create room response:", response);
+
+      // API 응답 구조에 따라 ID 추출
+      const roomId = response?.id || response?.roomId || response?.data?.id;
+
+      if (!roomId) {
+        console.error("Created room has no ID:", response);
+        toast({
+          title: "오류",
+          description: "방 생성은 완료되었으나 ID를 받지 못했습니다. 목록을 새로고침합니다.",
+          variant: "destructive",
+        });
+        loadRooms();
+        setCreateDialogOpen(false);
+        setLoading(false);
+        return;
+      }
+
+      // 생성된 방 정보 구성
+      const roomData: StudyRoom = {
+        id: roomId,
+        title: newRoom.title,
+        description: newRoom.description,
+        studyField: newRoom.studyField,
+        maxParticipants: newRoom.maxParticipants,
+        currentParticipants: 1,
+        creatorUsername: user.username,
+        createdBy: user.id,
+        isFull: false,
+        createdAt: new Date().toISOString(),
+        ...response,
+      };
+
+      localStorage.setItem("currentOpenStudyRoom", JSON.stringify(roomData));
+      setCurrentRoom(roomData);
 
       toast({
         title: "성공",
@@ -158,11 +200,10 @@ const OpenStudy: React.FC = () => {
         maxParticipants: 4,
       });
 
-      // ✅ 생성된 방 페이지로 바로 이동
-      navigate(`/room/${createdRoom.id}`);
+      // 오픈 스터디룸 페이지로 이동
+      navigate(`/open-study/room/${roomId}`);
     } catch (error: any) {
       const errorMessage = error?.message || "스터디 방 생성에 실패했습니다.";
-
       toast({
         title: "오류",
         description: errorMessage,
@@ -186,10 +227,9 @@ const OpenStudy: React.FC = () => {
     try {
       await openStudyAPI.joinRoom(roomId.toString());
 
-      // ✅ 참여한 방 정보를 로컬 스토리지에 저장
       const joinedRoom = rooms.find((r) => r.id === roomId);
       if (joinedRoom) {
-        localStorage.setItem("currentStudyRoom", JSON.stringify(joinedRoom));
+        localStorage.setItem("currentOpenStudyRoom", JSON.stringify(joinedRoom));
         setCurrentRoom(joinedRoom);
       }
 
@@ -198,69 +238,61 @@ const OpenStudy: React.FC = () => {
         description: "스터디 방에 참여했습니다.",
       });
 
-      // ✅ 스터디룸 페이지로 이동
-      navigate(`/room/${roomId}`);
+      // 오픈 스터디룸 페이지로 이동
+      navigate(`/open-study/room/${roomId}`);
     } catch (error: any) {
       console.error("Join room error:", error);
 
-      // ✅ "이미 참여 중" 에러 처리
       if (
         error?.message?.includes("이미 참여") ||
         error?.message?.includes("이미 다른 스터디룸에 참여")
       ) {
         try {
-          // ✅ 현재 참여 중인 방 확인
           let currentRoomData = currentRoom;
 
           if (!currentRoomData) {
-            const savedRoom = localStorage.getItem("currentStudyRoom");
+            const savedRoom = localStorage.getItem("currentOpenStudyRoom");
             if (savedRoom) {
               try {
                 currentRoomData = JSON.parse(savedRoom);
               } catch (e) {
                 console.error("Failed to parse saved room:", e);
-                localStorage.removeItem("currentStudyRoom");
+                localStorage.removeItem("currentOpenStudyRoom");
               }
             }
           }
 
-          // ✅ 같은 방이면 바로 입장
           if (currentRoomData && currentRoomData.id === roomId) {
             console.log("Already in this room, navigating...");
             toast({
               title: "안내",
               description: "이미 참여 중인 방입니다.",
             });
-            navigate(`/room/${roomId}`);
+            navigate(`/open-study/room/${roomId}`);
             setLoading(false);
             return;
           }
 
-          // ✅ 다른 방이면 확인 후 전환
           if (currentRoomData) {
             const shouldLeave = confirm(
               `이미 "${currentRoomData.title}" 방에 참여 중입니다.\n현재 방을 나가고 새로운 방에 참여하시겠습니까?`
             );
 
             if (shouldLeave) {
-              // 현재 방 나가기
               await openStudyAPI.leaveRoom(currentRoomData.id.toString());
 
-              // 로컬 스토리지 초기화
-              localStorage.removeItem("currentStudyRoom");
+              localStorage.removeItem("currentOpenStudyRoom");
               setCurrentRoom(null);
 
-              // 새로운 방 참여
               await openStudyAPI.joinRoom(roomId.toString());
 
-              // 새로운 방 정보 저장
-              const newRoom = rooms.find((r) => r.id === roomId);
-              if (newRoom) {
+              const newJoinedRoom = rooms.find((r) => r.id === roomId);
+              if (newJoinedRoom) {
                 localStorage.setItem(
-                  "currentStudyRoom",
-                  JSON.stringify(newRoom)
+                  "currentOpenStudyRoom",
+                  JSON.stringify(newJoinedRoom)
                 );
-                setCurrentRoom(newRoom);
+                setCurrentRoom(newJoinedRoom);
               }
 
               toast({
@@ -268,7 +300,7 @@ const OpenStudy: React.FC = () => {
                 description: "새로운 스터디 방에 참여했습니다.",
               });
 
-              navigate(`/room/${roomId}`);
+              navigate(`/open-study/room/${roomId}`);
             }
           } else {
             toast({
@@ -286,7 +318,6 @@ const OpenStudy: React.FC = () => {
           });
         }
       } else {
-        // 기타 오류
         const errorMessage = error?.message || "스터디 방 참여에 실패했습니다.";
         toast({
           title: "오류",
@@ -299,12 +330,52 @@ const OpenStudy: React.FC = () => {
     }
   };
 
+  const handleLeaveOrDeleteRoom = async () => {
+    if (!currentRoom || !user) return;
+
+    const isOwner = currentRoom.creatorUsername === user.username;
+
+    try {
+      if (isOwner) {
+        const ok = confirm(
+          `"${currentRoom.title}" 방의 방장입니다.\n방을 삭제하면 모든 참여자가 방에서 나가게 됩니다.\n정말 삭제하시겠습니까?`
+        );
+
+        if (!ok) return;
+
+        await openStudyAPI.deleteRoom(currentRoom.id.toString());
+
+        toast({
+          title: "방 삭제 완료",
+          description: "스터디 방이 삭제되었습니다.",
+        });
+      } else {
+        await openStudyAPI.leaveRoom(currentRoom.id.toString());
+
+        toast({
+          title: "나가기 완료",
+          description: "스터디 방에서 나갔습니다.",
+        });
+      }
+
+      localStorage.removeItem("currentOpenStudyRoom");
+      setCurrentRoom(null);
+      loadRooms();
+    } catch (error: any) {
+      toast({
+        title: "오류",
+        description: error?.message || "처리 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* ✅ 현재 참여 중인 방 표시 */}
+        {/* 현재 참여 중인 방 표시 */}
         {currentRoom && (
           <Card className="mb-6 bg-blue-50 border-blue-200">
             <CardContent className="py-4">
@@ -323,60 +394,14 @@ const OpenStudy: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button onClick={() => navigate(`/room/${currentRoom.id}`)}>
+                  <Button
+                    onClick={() =>
+                      navigate(`/open-study/room/${currentRoom.id}`)
+                    }
+                  >
                     방으로 이동
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      if (!currentRoom || !user) return;
-
-                      const isOwner =
-                        currentRoom.creatorUsername === user.username;
-
-                      try {
-                        if (isOwner) {
-                          // ✅ 방장일 경우 방 삭제
-                          const ok = confirm(
-                            `"${currentRoom.title}" 방의 방장입니다.\n방을 삭제하면 모든 참여자가 방에서 나가게 됩니다.\n정말 삭제하시겠습니까?`
-                          );
-
-                          if (!ok) return;
-
-                          await openStudyAPI.deleteRoom(
-                            currentRoom.id.toString()
-                          );
-
-                          toast({
-                            title: "방 삭제 완료",
-                            description: "스터디 방이 삭제되었습니다.",
-                          });
-                        } else {
-                          // ✅ 일반 참여자 → 기존 로직 그대로
-                          await openStudyAPI.leaveRoom(
-                            currentRoom.id.toString()
-                          );
-
-                          toast({
-                            title: "나가기 완료",
-                            description: "스터디 방에서 나갔습니다.",
-                          });
-                        }
-
-                        // 공통 처리
-                        localStorage.removeItem("currentStudyRoom");
-                        setCurrentRoom(null);
-                        loadRooms();
-                      } catch (error: any) {
-                        toast({
-                          title: "오류",
-                          description:
-                            error?.message || "처리 중 오류가 발생했습니다.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
+                  <Button variant="outline" onClick={handleLeaveOrDeleteRoom}>
                     {currentRoom?.creatorUsername === user?.username
                       ? "방 삭제"
                       : "방 나가기"}
@@ -545,7 +570,7 @@ const OpenStudy: React.FC = () => {
         {/* 방 목록 */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            활성 스터디 방 ({rooms.length}개)
+            활성 스터디 방 ({rooms?.length || 0}개)
           </h2>
 
           {loading && rooms.length === 0 ? (
@@ -553,7 +578,7 @@ const OpenStudy: React.FC = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="text-gray-500 mt-4">스터디 방을 불러오는 중...</p>
             </div>
-          ) : rooms.length === 0 ? (
+          ) : !rooms || rooms.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
