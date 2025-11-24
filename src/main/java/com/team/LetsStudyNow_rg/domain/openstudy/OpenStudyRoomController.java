@@ -100,23 +100,13 @@ public class OpenStudyRoomController {
         @RequestParam(required = false) String studyField,
         @RequestParam(defaultValue = "1") int page
     ) {
+        log.info("방 목록 조회 요청 - studyField: {}, page: {}", studyField, page);
+        
         try {
-            log.info("방 목록 조회 요청 - studyField: {}, page: {}", studyField, page);
-            
-            // 페이지네이션 적용
             var pageResponse = openStudyRoomService.getRoomListByStudyFieldWithPagination(studyField, page);
             
             log.info("방 목록 조회 완료 - 결과 개수: {}, 전체 페이지: {}", 
                     pageResponse.content().size(), pageResponse.totalPages());
-            
-            // 조회 결과가 없을 경우 안내 메시지
-            if (pageResponse.content().isEmpty()) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "조회된 스터디 방이 없습니다.",
-                    "data", pageResponse
-                ));
-            }
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
