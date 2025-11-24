@@ -1,5 +1,7 @@
 package com.team.LetsStudyNow_rg.domain.openstudy;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +25,20 @@ public interface OpenStudyRoomRepository extends JpaRepository<OpenStudyRoom, Lo
     List<OpenStudyRoom> findByStudyFieldAndStatusInOrderByCreatedAtDesc(
         StudyField studyField, 
         List<RoomStatus> statuses
+    );
+    
+    /**
+     * 여러 상태의 방 목록 조회 (페이징, 최신순)
+     */
+    Page<OpenStudyRoom> findByStatusInOrderByCreatedAtDesc(List<RoomStatus> statuses, Pageable pageable);
+    
+    /**
+     * 공부 분야별 방 목록 조회 (페이징, 최신순)
+     */
+    Page<OpenStudyRoom> findByStudyFieldAndStatusInOrderByCreatedAtDesc(
+        StudyField studyField, 
+        List<RoomStatus> statuses,
+        Pageable pageable
     );
     
     /**
