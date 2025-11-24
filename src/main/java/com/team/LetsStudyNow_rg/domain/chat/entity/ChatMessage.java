@@ -1,5 +1,6 @@
-package com.team.LetsStudyNow_rg.domain.chat.entitiy;
+package com.team.LetsStudyNow_rg.domain.chat.entity;
 
+import com.team.LetsStudyNow_rg.domain.chat.enums.ChatRoomType;
 import com.team.LetsStudyNow_rg.domain.chat.enums.MessageType;
 import jakarta.persistence.*;
 import lombok.Builder;
@@ -20,6 +21,9 @@ public class ChatMessage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Enumerated(EnumType.STRING)
+    private ChatRoomType roomType;
+
     @Column(nullable = false)
     private Long roomId;      // 방 번호
 
@@ -36,7 +40,7 @@ public class ChatMessage {
     private LocalDateTime sentAt;
 
     @Builder
-    public ChatMessage(Long roomId, String sender, String message, MessageType type) {
+    public ChatMessage(ChatRoomType roomType, Long roomId, String sender, String message, MessageType type) {
         this.roomId = roomId;
         this.sender = sender;
         this.message = message;
