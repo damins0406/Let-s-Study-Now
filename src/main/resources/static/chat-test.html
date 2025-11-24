@@ -8,13 +8,16 @@
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; }
         .input-group { margin-bottom: 10px; }
-        #chat-area { list-style-type: none; padding: 0; margin-top: 20px; border: 1px solid #ccc; height: 300px; overflow-y: scroll; }
-        #chat-area li { padding: 5px 10px; border-bottom: 1px solid #eee; }
+        #chat-area { list-style-type: none; padding: 0; margin-top: 20px; border: 1px solid #ccc; height: 400px; overflow-y: scroll; }
+        #chat-area li { padding: 10px; border-bottom: 1px solid #eee; }
         #chat-area li:nth-child(odd) { background-color: #f9f9f9; }
+
+        /* 이미지 스타일 */
+        .chat-image { max-width: 200px; max-height: 200px; border-radius: 5px; margin-top: 5px; display: block;}
     </style>
 </head>
 <body>
-<h2>실시간 채팅 테스트</h2>
+<h2>실시간 채팅 테스트 (이미지 지원)</h2>
 
 <div class="input-group">
     <label>방 번호:</label>
@@ -37,10 +40,18 @@
     </select>
 </div>
 
+<!-- 텍스트 전송 -->
 <div class="input-group">
     <label>내용:</label>
     <input type="text" id="message" value="테스트 메시지" onkeypress="if(event.keyCode==13) sendMessage()">
     <button onclick="sendMessage()">전송</button>
+</div>
+
+<!-- 이미지 전송 -->
+<div class="input-group" style="border-top: 1px dashed #ccc; padding-top: 10px; margin-top: 10px;">
+    <label>이미지 전송:</label>
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="sendImage()">이미지 업로드 및 전송</button>
 </div>
 
 <ul id="chat-area"></ul>
@@ -57,17 +68,16 @@
             updateStatus(true);
 
             var roomId = document.getElementById("roomId").value;
-            var roomType = document.getElementById("roomType").value; // OPEN or GROUP
+            var roomType = document.getElementById("roomType").value;
 
-            // 1. 구독 (Subscribe): /sub/chat/{type}/{roomId}
-            // (예: /sub/chat/open/1 또는 /sub/chat/group/1)
+            // 구독
             var subscribeUrl = '/sub/chat/' + roomType.toLowerCase() + '/' + roomId;
 
             stompClient.subscribe(subscribeUrl, function (chatMessage) {
                 showChat(JSON.parse(chatMessage.body));
             });
 
-            // 2. 입장 메시지 전송 (Publish)
+            // 입장 메시지
             stompClient.send("/pub/chat/message", {}, JSON.stringify({
                 'type': 'ENTER',
                 'roomType': roomType,
@@ -76,7 +86,7 @@
                 'message': ''
             }));
 
-            appendMessage("시스템", roomId + "번 방(" + roomType + ")에 입장했습니다.");
+            appendMessage("시스템", "SYSTEM", roomId + "번 방(" + roomType + ")에 입장했습니다.");
         }, function(error) {
             console.error("Connection error: " + error);
             updateStatus(false);
@@ -84,34 +94,93 @@
         });
     }
 
-    function sendMessage() {
+    function checkConnection() {
         if (!stompClient || !stompClient.connected) {
             alert("먼저 연결해주세요!");
-            return;
+            return false;
         }
+        return true;
+    }
+
+    // 1. 텍스트 메시지 전송
+    function sendMessage() {
+        if (!checkConnection()) return;
 
         var roomId = document.getElementById("roomId").value;
         var sender = document.getElementById("sender").value;
         var message = document.getElementById("message").value;
         var roomType = document.getElementById("roomType").value;
 
-        if (!message.trim()) return; // 빈 메시지 방지
+        if (!message.trim()) return;
 
-        // 메시지 전송
         stompClient.send("/pub/chat/message", {}, JSON.stringify({
             'type': 'TALK',
-            'roomType': roomType, // OPEN or GROUP
+            'roomType': roomType,
             'roomId': roomId,
             'sender': sender,
             'message': message
         }));
 
-        document.getElementById("message").value = ''; // 입력창 초기화
+        document.getElementById("message").value = '';
         document.getElementById("message").focus();
     }
 
+    // 2. 이미지 전송 (핵심 로직)
+    function sendImage() {
+        if (!checkConnection()) return;
+
+        var fileInput = document.getElementById('imageInput');
+        var file = fileInput.files[0];
+
+        if (!file) {
+            alert("이미지 파일을 선택해주세요.");
+            return;
+        }
+
+        // (1) HTTP로 이미지 업로드
+        var formData = new FormData();
+        formData.append("file", file); // Controller에서 @RequestPart("file")로 받음
+
+        fetch('/api/chat/image', {
+            method: 'POST',
+            body: formData
+            // fetch는 FormData 전송 시 Content-Type 헤더를 자동으로 설정해줌 (multipart/form-data)
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("이미지 업로드 실패");
+            return response.text(); // 서버가 반환한 이미지 URL (String)
+        })
+        .then(imageUrl => {
+            console.log("이미지 업로드 성공, URL:", imageUrl);
+
+            var roomId = document.getElementById("roomId").value;
+            var sender = document.getElementById("sender").value;
+            var roomType = document.getElementById("roomType").value;
+
+            // (2) 이미지 URL을 소켓 메시지로 전송
+            stompClient.send("/pub/chat/message", {}, JSON.stringify({
+                'type': 'IMAGE',      // 타입 IMAGE
+                'roomType': roomType,
+                'roomId': roomId,
+                'sender': sender,
+                'message': imageUrl   // 메시지 내용에 URL 넣기
+            }));
+
+            // 입력창 초기화
+            fileInput.value = '';
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            alert("이미지 전송 중 오류가 발생했습니다.");
+        });
+    }
+
     function showChat(message) {
-        appendMessage(message.sender, message.message);
+        if (message.type === 'IMAGE') {
+            appendImage(message.sender, message.message);
+        } else {
+            appendMessage(message.sender, message.message);
+        }
     }
 
     function appendMessage(sender, text) {
@@ -119,7 +188,29 @@
         var li = document.createElement("li");
         li.appendChild(document.createTextNode(sender + ": " + text));
         chatArea.appendChild(li);
-        chatArea.scrollTop = chatArea.scrollHeight; // 자동 스크롤
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function appendImage(sender, imageUrl) {
+        var chatArea = document.getElementById("chat-area");
+        var li = document.createElement("li");
+
+        var senderText = document.createTextNode(sender + ": ");
+        li.appendChild(senderText);
+
+        var img = document.createElement("img");
+        img.src = imageUrl;
+        img.className = "chat-image";
+
+        // 이미지 로드 에러 처리 (선택사항)
+        img.onerror = function() {
+            this.style.display='none';
+            li.appendChild(document.createTextNode("[이미지를 불러올 수 없습니다]"));
+        };
+
+        li.appendChild(img);
+        chatArea.appendChild(li);
+        chatArea.scrollTop = chatArea.scrollHeight;
     }
 
     function disconnect() {

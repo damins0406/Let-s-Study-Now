@@ -37,10 +37,12 @@ public class ChatMessage {
     private MessageType type;
 
     @CreatedDate
+    @Column(updatable = false)
     private LocalDateTime sentAt;
 
     @Builder
     public ChatMessage(ChatRoomType roomType, Long roomId, String sender, String message, MessageType type) {
+        this.roomType = roomType;
         this.roomId = roomId;
         this.sender = sender;
         this.message = message;

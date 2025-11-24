@@ -6,19 +6,15 @@ import com.team.LetsStudyNow_rg.domain.chat.enums.ChatRoomType;
 import com.team.LetsStudyNow_rg.domain.chat.enums.MessageType;
 import com.team.LetsStudyNow_rg.domain.chat.repository.ChatRepository;
 import com.team.LetsStudyNow_rg.domain.chat.service.ChatService;
+import com.team.LetsStudyNow_rg.global.s3.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,6 +24,7 @@ public class ChatController {
 
     private final SimpMessageSendingOperations messagingTemplate;
     private final ChatService chatService;
+    private final S3Service s3Service;
 
     // 메시지 전송 처리 (클라이언트: /pub/chat/message)
     @MessageMapping("/chat/message")
@@ -54,6 +51,15 @@ public class ChatController {
         List<ChatMessage> chatList = chatService.getChatHistory(roomId, roomType, page, size);
 
         return ResponseEntity.ok(chatList);
+    }
+
+    @PostMapping(value = "/api/chat/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> uploadChatImage(
+            @RequestPart("file") MultipartFile file
+    ) {
+        String imageUrl = s3Service.uploadFile(file, "chat");
+
+        return ResponseEntity.ok(imageUrl);
     }
 }
 
