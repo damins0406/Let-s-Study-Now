@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { openStudyAPI, StudyRoom } from "@/lib/api";
+import { openStudyAPI, OpenStudyRoom } from "@/lib/api";
 import {
   Users,
   Clock,
@@ -79,7 +79,7 @@ interface HelpAnswer {
   timestamp: Date;
 }
 
-const OpenStudyRoom: React.FC = () => {
+const OpenStudyRoomPage: React.FC = () => {
   const { user } = useAuth();
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ const OpenStudyRoom: React.FC = () => {
   const isLeavingRef = useRef(false);
 
   // Room Info
-  const [roomInfo, setRoomInfo] = useState<StudyRoom | null>(null);
+  const [roomInfo, setRoomInfo] = useState<OpenStudyRoom | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Chat
@@ -119,7 +119,8 @@ const OpenStudyRoom: React.FC = () => {
   const [newHelpImage, setNewHelpImage] = useState<string | null>(null);
   const [newHelpFileName, setNewHelpFileName] = useState<string | null>(null);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
-  const [selectedHelpRequest, setSelectedHelpRequest] = useState<HelpRequest | null>(null);
+  const [selectedHelpRequest, setSelectedHelpRequest] =
+    useState<HelpRequest | null>(null);
   const [answerInput, setAnswerInput] = useState("");
 
   // Dialogs
@@ -133,9 +134,13 @@ const OpenStudyRoom: React.FC = () => {
     const secs = seconds % 60;
 
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
     }
-    return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${secs
+      .toString()
+      .padStart(2, "0")}`;
   };
 
   // 상대적 시간 표시
@@ -184,7 +189,7 @@ const OpenStudyRoom: React.FC = () => {
         setLoading(true);
         console.log("Attempting to join room:", roomId);
 
-        let roomData: StudyRoom;
+        let roomData: OpenStudyRoom;
         try {
           roomData = await openStudyAPI.getRoom(roomId);
           console.log("Room data loaded:", roomData);
@@ -344,7 +349,11 @@ const OpenStudyRoom: React.FC = () => {
         studySessions: prev.studySessions + 1,
       }));
       addSystemMessage(
-        `${user?.username}님이 휴식 모드로 전환했습니다. (공부 시간: ${formatTime(timerSeconds)})`
+        `${
+          user?.username
+        }님이 휴식 모드로 전환했습니다. (공부 시간: ${formatTime(
+          timerSeconds
+        )})`
       );
     } else if (newStatus === "studying" && myStatus === "resting") {
       setTodayStats((prev) => ({
@@ -495,7 +504,12 @@ const OpenStudyRoom: React.FC = () => {
     setNewHelpFileName(null);
     setHelpDialogOpen(false);
 
-    addSystemMessage(`${user?.username}님이 도움을 요청했습니다: "${newHelpQuestion.slice(0, 30)}..."`);
+    addSystemMessage(
+      `${user?.username}님이 도움을 요청했습니다: "${newHelpQuestion.slice(
+        0,
+        30
+      )}..."`
+    );
 
     toast({
       title: "도움 요청 등록",
@@ -670,24 +684,32 @@ const OpenStudyRoom: React.FC = () => {
                             {participant.username}
                           </span>
                           {participant.isCreator && (
-                            <Badge variant="secondary" className="text-xs bg-yellow-100">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs bg-yellow-100"
+                            >
                               방장
                             </Badge>
                           )}
-                          {participant.username === user?.username && !participant.isCreator && (
-                            <Badge variant="secondary" className="text-xs">
-                              나
-                            </Badge>
-                          )}
+                          {participant.username === user?.username &&
+                            !participant.isCreator && (
+                              <Badge variant="secondary" className="text-xs">
+                                나
+                              </Badge>
+                            )}
                         </div>
                         <div className="flex items-center gap-1">
                           <span
                             className={`w-2 h-2 rounded-full ${
-                              participant.status === "studying" ? "bg-green-500" : "bg-orange-500"
+                              participant.status === "studying"
+                                ? "bg-green-500"
+                                : "bg-orange-500"
                             }`}
                           ></span>
                           <span className="text-xs text-gray-500">
-                            {participant.status === "studying" ? "공부중" : "휴식중"}
+                            {participant.status === "studying"
+                              ? "공부중"
+                              : "휴식중"}
                           </span>
                         </div>
                       </div>
@@ -700,11 +722,19 @@ const OpenStudyRoom: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="outline" size="sm" onClick={() => setInviteDialogOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setInviteDialogOpen(true)}
+          >
             <Users className="w-4 h-4 mr-2" />
             초대
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setExitDialogOpen(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setExitDialogOpen(true)}
+          >
             <LogOut className="w-4 h-4 mr-2" />
             나가기
           </Button>
@@ -720,7 +750,11 @@ const OpenStudyRoom: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant={myStatus === "studying" ? "default" : "outline"}
-                className={myStatus === "studying" ? "bg-green-500 hover:bg-green-600" : ""}
+                className={
+                  myStatus === "studying"
+                    ? "bg-green-500 hover:bg-green-600"
+                    : ""
+                }
                 onClick={() => handleStatusToggle("studying")}
               >
                 <BookOpen className="w-4 h-4 mr-2" />
@@ -728,7 +762,11 @@ const OpenStudyRoom: React.FC = () => {
               </Button>
               <Button
                 variant={myStatus === "resting" ? "default" : "outline"}
-                className={myStatus === "resting" ? "bg-orange-500 hover:bg-orange-600" : ""}
+                className={
+                  myStatus === "resting"
+                    ? "bg-orange-500 hover:bg-orange-600"
+                    : ""
+                }
                 onClick={() => handleStatusToggle("resting")}
               >
                 <Coffee className="w-4 h-4 mr-2" />
@@ -740,7 +778,9 @@ const OpenStudyRoom: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span
                     className={`text-2xl font-bold tabular-nums ${
-                      myStatus === "studying" ? "text-green-600" : "text-gray-400"
+                      myStatus === "studying"
+                        ? "text-green-600"
+                        : "text-gray-400"
                     }`}
                   >
                     {formatTime(timerSeconds)}
@@ -801,7 +841,9 @@ const OpenStudyRoom: React.FC = () => {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="font-medium text-sm">{message.sender}</span>
+                        <span className="font-medium text-sm">
+                          {message.sender}
+                        </span>
                         <span className="text-xs text-gray-500">
                           {message.timestamp.toLocaleTimeString("ko-KR", {
                             hour: "2-digit",
@@ -836,7 +878,12 @@ const OpenStudyRoom: React.FC = () => {
                                 {message.fileName}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {((message.fileSize || 0) / 1024 / 1024).toFixed(2)} MB
+                                {(
+                                  (message.fileSize || 0) /
+                                  1024 /
+                                  1024
+                                ).toFixed(2)}{" "}
+                                MB
                               </p>
                             </div>
                           </div>
@@ -863,7 +910,11 @@ const OpenStudyRoom: React.FC = () => {
                 accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip"
                 onChange={handleFileUpload}
               />
-              <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Paperclip className="w-5 h-5" />
               </Button>
               <input
@@ -921,7 +972,11 @@ const OpenStudyRoom: React.FC = () => {
               <div className="text-center py-8 text-gray-500">
                 <HelpCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                 <p className="font-medium">아직 질문이 없습니다</p>
-                <p className="text-sm mt-1">공부하다 막히는 부분이 있으면<br />도움을 요청해보세요!</p>
+                <p className="text-sm mt-1">
+                  공부하다 막히는 부분이 있으면
+                  <br />
+                  도움을 요청해보세요!
+                </p>
               </div>
             ) : (
               <>
@@ -944,12 +999,20 @@ const OpenStudyRoom: React.FC = () => {
                               {request.requester.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium text-sm">{request.requester}</span>
+                          <span className="font-medium text-sm">
+                            {request.requester}
+                          </span>
                           <Badge
-                            variant={request.status === "helping" ? "default" : "destructive"}
+                            variant={
+                              request.status === "helping"
+                                ? "default"
+                                : "destructive"
+                            }
                             className="text-xs"
                           >
-                            {request.status === "helping" ? "답변 중" : "도움 필요"}
+                            {request.status === "helping"
+                              ? "답변 중"
+                              : "도움 필요"}
                           </Badge>
                         </div>
                         <span className="text-xs text-gray-500">
@@ -1001,8 +1064,13 @@ const OpenStudyRoom: React.FC = () => {
                                   {request.requester.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="font-medium text-sm">{request.requester}</span>
-                              <Badge variant="secondary" className="text-xs bg-green-100">
+                              <span className="font-medium text-sm">
+                                {request.requester}
+                              </span>
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-green-100"
+                              >
                                 해결됨 ✓
                               </Badge>
                             </div>
@@ -1022,7 +1090,9 @@ const OpenStudyRoom: React.FC = () => {
           {/* 오늘의 학습 기록 (하단) */}
           <div className="p-4 border-t bg-gray-50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">📊 오늘의 학습</span>
+              <span className="text-sm font-medium text-gray-600">
+                📊 오늘의 학습
+              </span>
               <TrendingUp className="w-4 h-4 text-green-500" />
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -1033,11 +1103,15 @@ const OpenStudyRoom: React.FC = () => {
                 <p className="text-xs text-gray-500">총 학습</p>
               </div>
               <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-green-600">{todayStats.studySessions}</p>
+                <p className="text-lg font-bold text-green-600">
+                  {todayStats.studySessions}
+                </p>
                 <p className="text-xs text-gray-500">공부 세션</p>
               </div>
               <div className="bg-white rounded-lg p-2">
-                <p className="text-lg font-bold text-orange-600">{todayStats.restSessions}</p>
+                <p className="text-lg font-bold text-orange-600">
+                  {todayStats.restSessions}
+                </p>
                 <p className="text-xs text-gray-500">휴식 세션</p>
               </div>
             </div>
@@ -1115,10 +1189,16 @@ const OpenStudyRoom: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setHelpDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setHelpDialogOpen(false)}
+              >
                 취소
               </Button>
-              <Button onClick={handleSubmitHelpRequest} disabled={!newHelpQuestion.trim()}>
+              <Button
+                onClick={handleSubmitHelpRequest}
+                disabled={!newHelpQuestion.trim()}
+              >
                 <HelpCircle className="w-4 h-4 mr-2" />
                 도움 요청
               </Button>
@@ -1169,7 +1249,9 @@ const OpenStudyRoom: React.FC = () => {
               <div className="space-y-4">
                 {/* 질문 내용 */}
                 <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-gray-800">{selectedHelpRequest.question}</p>
+                  <p className="text-gray-800">
+                    {selectedHelpRequest.question}
+                  </p>
                 </div>
 
                 {/* 첨부 이미지 */}
@@ -1202,12 +1284,16 @@ const OpenStudyRoom: React.FC = () => {
                               {answer.answerer.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="font-medium text-sm">{answer.answerer}</span>
+                          <span className="font-medium text-sm">
+                            {answer.answerer}
+                          </span>
                           <span className="text-xs text-gray-500">
                             {formatRelativeTime(answer.timestamp)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-800">{answer.content}</p>
+                        <p className="text-sm text-gray-800">
+                          {answer.content}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -1222,10 +1308,15 @@ const OpenStudyRoom: React.FC = () => {
                         placeholder="답변을 입력하세요..."
                         value={answerInput}
                         onChange={(e) => setAnswerInput(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleSubmitAnswer()}
+                        onKeyPress={(e) =>
+                          e.key === "Enter" && handleSubmitAnswer()
+                        }
                         className="flex-1"
                       />
-                      <Button onClick={handleSubmitAnswer} disabled={!answerInput.trim()}>
+                      <Button
+                        onClick={handleSubmitAnswer}
+                        disabled={!answerInput.trim()}
+                      >
                         <Send className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1240,7 +1331,9 @@ const OpenStudyRoom: React.FC = () => {
                         <Button
                           variant="default"
                           className="bg-green-500 hover:bg-green-600"
-                          onClick={() => handleResolveRequest(selectedHelpRequest.id)}
+                          onClick={() =>
+                            handleResolveRequest(selectedHelpRequest.id)
+                          }
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           해결 완료
@@ -1248,7 +1341,9 @@ const OpenStudyRoom: React.FC = () => {
                       )}
                       <Button
                         variant="destructive"
-                        onClick={() => handleDeleteRequest(selectedHelpRequest.id)}
+                        onClick={() =>
+                          handleDeleteRequest(selectedHelpRequest.id)
+                        }
                       >
                         삭제
                       </Button>
@@ -1256,7 +1351,10 @@ const OpenStudyRoom: React.FC = () => {
                   ) : (
                     <div></div>
                   )}
-                  <Button variant="outline" onClick={() => setSelectedHelpRequest(null)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedHelpRequest(null)}
+                  >
                     닫기
                   </Button>
                 </div>
@@ -1271,7 +1369,9 @@ const OpenStudyRoom: React.FC = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>🎉 친구 초대하기</DialogTitle>
-            <DialogDescription>친구들을 초대하여 함께 공부하세요!</DialogDescription>
+            <DialogDescription>
+              친구들을 초대하여 함께 공부하세요!
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1298,7 +1398,8 @@ const OpenStudyRoom: React.FC = () => {
             <DialogTitle>스터디룸 나가기</DialogTitle>
             <DialogDescription>
               {user &&
-              (roomInfo.createdBy === user.id || roomInfo.creatorUsername === user.username)
+              (roomInfo.createdBy === user.id ||
+                roomInfo.creatorUsername === user.username)
                 ? "방장이 나가면 방이 삭제됩니다. 정말로 나가시겠습니까?"
                 : "정말로 스터디룸을 나가시겠습니까?"}
             </DialogDescription>
@@ -1317,4 +1418,4 @@ const OpenStudyRoom: React.FC = () => {
   );
 };
 
-export default OpenStudyRoom;
+export default OpenStudyRoomPage;

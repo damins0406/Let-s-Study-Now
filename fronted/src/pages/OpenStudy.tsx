@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { openStudyAPI, StudyRoom } from "@/lib/api";
+import { openStudyAPI, OpenStudyRoom } from "@/lib/api";
 import { Users, Clock, BookOpen, Plus, RefreshCw } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
@@ -47,10 +47,11 @@ const STUDY_FIELDS = [
 const OpenStudy: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [rooms, setRooms] = useState<StudyRoom[]>([]);
-  const [currentRoom, setCurrentRoom] = useState<StudyRoom | null>(null);
+  const [rooms, setRooms] = useState<OpenStudyRoom[]>([]);
+  const [currentRoom, setCurrentRoom] = useState<OpenStudyRoom | null>(null);
   const [loading, setLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [selectedField, setSelectedField] = useState<string>("");
 
   const [newRoom, setNewRoom] = useState({
     title: "",
@@ -78,18 +79,30 @@ const OpenStudy: React.FC = () => {
     }
   }, [user]);
 
-  const loadRooms = async () => {
+  // ✅ 필터링 적용된 방 목록 로드
+  const loadRooms = async (studyField?: string) => {
     setLoading(true);
     try {
-      const response = await openStudyAPI.getRooms();
+      const response = await openStudyAPI.getRooms(studyField);
       console.log("OpenStudy API Response:", response);
 
-      let roomsData: StudyRoom[] = [];
+      let roomsData: OpenStudyRoom[] = [];
 
       if (Array.isArray(response)) {
-        roomsData = response;
+        roomsData = response.map((room) => ({
+          ...room,
+          // ✅ 백엔드가 roomName으로 보내면 title로 매핑
+          title: room.title || (room as any).roomName || "",
+        }));
       } else if (response && typeof response === "object") {
-        roomsData = response.content || response.data || response.rooms || [];
+        // ✅ 타입 단언으로 처리
+        const responseObj = response as any;
+        const dataArray =
+          responseObj.content || responseObj.data || responseObj.rooms || [];
+        roomsData = dataArray.map((room: any) => ({
+          ...room,
+          title: room.title || room.roomName || "",
+        }));
       }
 
       setRooms(roomsData);
@@ -103,6 +116,12 @@ const OpenStudy: React.FC = () => {
       setRooms([]);
     }
     setLoading(false);
+  };
+
+  // ✅ 필터 변경 핸들러
+  const handleFilterChange = (field: string) => {
+    setSelectedField(field);
+    loadRooms(field || undefined);
   };
 
   const handleCreateRoom = async () => {
@@ -153,26 +172,30 @@ const OpenStudy: React.FC = () => {
 
       console.log("Create room response:", response);
 
-      // API 응답 구조에 따라 ID 추출
-      const roomId = response?.id || response?.roomId || response?.data?.id;
+      // ✅ API 응답 구조에 따라 ID 추출 (타입 단언)
+      const responseObj = response as any;
+      const roomId =
+        response?.id || responseObj?.roomId || responseObj?.data?.id;
 
       if (!roomId) {
         console.error("Created room has no ID:", response);
         toast({
           title: "오류",
-          description: "방 생성은 완료되었으나 ID를 받지 못했습니다. 목록을 새로고침합니다.",
+          description:
+            "방 생성은 완료되었으나 ID를 받지 못했습니다. 목록을 새로고침합니다.",
           variant: "destructive",
         });
-        loadRooms();
+        loadRooms(selectedField || undefined);
         setCreateDialogOpen(false);
         setLoading(false);
         return;
       }
 
-      // 생성된 방 정보 구성
-      const roomData: StudyRoom = {
+      // ✅ 생성된 방 정보 구성 (title과 roomName 모두 저장)
+      const roomData: OpenStudyRoom = {
         id: roomId,
         title: newRoom.title,
+        roomName: newRoom.title, // ✅ 백엔드 호환성
         description: newRoom.description,
         studyField: newRoom.studyField,
         maxParticipants: newRoom.maxParticipants,
@@ -225,11 +248,14 @@ const OpenStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      await openStudyAPI.joinRoom(roomId.toString());
+      await openStudyAPI.joinRoom(roomId);
 
       const joinedRoom = rooms.find((r) => r.id === roomId);
       if (joinedRoom) {
-        localStorage.setItem("currentOpenStudyRoom", JSON.stringify(joinedRoom));
+        localStorage.setItem(
+          "currentOpenStudyRoom",
+          JSON.stringify(joinedRoom)
+        );
         setCurrentRoom(joinedRoom);
       }
 
@@ -279,12 +305,12 @@ const OpenStudy: React.FC = () => {
             );
 
             if (shouldLeave) {
-              await openStudyAPI.leaveRoom(currentRoomData.id.toString());
+              await openStudyAPI.leaveRoom(currentRoomData.id);
 
               localStorage.removeItem("currentOpenStudyRoom");
               setCurrentRoom(null);
 
-              await openStudyAPI.joinRoom(roomId.toString());
+              await openStudyAPI.joinRoom(roomId);
 
               const newJoinedRoom = rooms.find((r) => r.id === roomId);
               if (newJoinedRoom) {
@@ -343,14 +369,14 @@ const OpenStudy: React.FC = () => {
 
         if (!ok) return;
 
-        await openStudyAPI.deleteRoom(currentRoom.id.toString());
+        await openStudyAPI.deleteRoom(currentRoom.id);
 
         toast({
           title: "방 삭제 완료",
           description: "스터디 방이 삭제되었습니다.",
         });
       } else {
-        await openStudyAPI.leaveRoom(currentRoom.id.toString());
+        await openStudyAPI.leaveRoom(currentRoom.id);
 
         toast({
           title: "나가기 완료",
@@ -360,7 +386,7 @@ const OpenStudy: React.FC = () => {
 
       localStorage.removeItem("currentOpenStudyRoom");
       setCurrentRoom(null);
-      loadRooms();
+      loadRooms(selectedField || undefined);
     } catch (error: any) {
       toast({
         title: "오류",
@@ -422,7 +448,11 @@ const OpenStudy: React.FC = () => {
           </div>
 
           <div className="flex space-x-3">
-            <Button variant="outline" onClick={loadRooms} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={() => loadRooms(selectedField || undefined)}
+              disabled={loading}
+            >
               <RefreshCw
                 className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
               />
@@ -567,6 +597,30 @@ const OpenStudy: React.FC = () => {
           </Card>
         )}
 
+        {/* ✅ 필터 섹션 추가 */}
+        <div className="mb-6">
+          <Label className="mb-2 block">공부 분야 필터</Label>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant={selectedField === "" ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleFilterChange("")}
+            >
+              전체
+            </Button>
+            {STUDY_FIELDS.map((field) => (
+              <Button
+                key={field}
+                variant={selectedField === field ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleFilterChange(field)}
+              >
+                {field}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         {/* 방 목록 */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -586,7 +640,9 @@ const OpenStudy: React.FC = () => {
                   활성 스터디 방이 없습니다
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  첫 번째 스터디 방을 만들어보세요!
+                  {selectedField
+                    ? `"${selectedField}" 분야의 스터디 방이 없습니다.`
+                    : "첫 번째 스터디 방을 만들어보세요!"}
                 </p>
                 {user && (
                   <Button onClick={() => setCreateDialogOpen(true)}>

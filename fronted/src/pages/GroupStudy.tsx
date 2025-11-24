@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { groupAPI, studyRoomAPI, Group, StudyRoom } from "@/lib/api";
+import { groupAPI, studyRoomAPI, Group, GroupStudyRoom } from "@/lib/api";
 import { Users, Plus, Copy, Trash2, Clock, BookOpen } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
@@ -42,21 +42,20 @@ const GroupStudy: React.FC = () => {
   const navigate = useNavigate();
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [groupRooms, setGroupRooms] = useState<{
-    [groupId: number]: StudyRoom[];
+    [groupId: number]: GroupStudyRoom[];
   }>({});
   const [loading, setLoading] = useState(false);
   const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [createRoomDialogOpen, setCreateRoomDialogOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
-  // ✅ API 스키마에 맞게 수정: groupName만 사용
   const [newGroup, setNewGroup] = useState({
     groupName: "",
   });
 
   const [newRoom, setNewRoom] = useState({
-    title: "",
-    maxParticipants: 4,
+    roomName: "",
+    maxMembers: 4,
     studyHours: 2,
     studyField: "프로그래밍",
   });
@@ -96,16 +95,13 @@ const GroupStudy: React.FC = () => {
           sessionError?.message
         );
 
-        // ✅ user 객체 확인 (디버깅용)
         console.log("user object:", user);
 
-        // ✅ user.id가 없으면 username으로 시도
         let leaderId: number;
 
         if (user.id) {
           leaderId = Number(user.id);
         } else if (user.username) {
-          // username을 leaderId로 사용할 수 없으므로 에러 처리
           console.error(
             "user.id is undefined, backend should return user ID in /api/profile"
           );
@@ -157,7 +153,7 @@ const GroupStudy: React.FC = () => {
 
   const loadGroupRooms = async (groupId: number) => {
     try {
-      const rooms = await studyRoomAPI.getGroupRooms(groupId.toString());
+      const rooms = await studyRoomAPI.getGroupRooms(groupId);
       setGroupRooms((prev) => ({ ...prev, [groupId]: rooms }));
     } catch (error) {
       console.error("그룹 방 불러오기 실패:", error);
@@ -185,41 +181,34 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ 세션 기반으로 먼저 시도 (leaderId 없이)
-      try {
-        await groupAPI.createGroup({
-          groupName: newGroup.groupName,
-          // leaderId는 백엔드에서 세션에서 가져옴
-        } as any);
-      } catch (sessionError: any) {
-        // ✅ 세션 기반 실패 시 leaderId 직접 전달
-        if (!user.id) {
-          toast({
-            title: "오류",
-            description: "사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        const leaderId = Number(user.id);
-
-        if (isNaN(leaderId)) {
-          toast({
-            title: "오류",
-            description: "유효하지 않은 사용자 ID입니다.",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
-
-        await groupAPI.createGroup({
-          groupName: newGroup.groupName,
-          leaderId: leaderId,
+      // ✅ user.id 확인
+      if (!user.id) {
+        toast({
+          title: "오류",
+          description: "사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.",
+          variant: "destructive",
         });
+        setLoading(false);
+        return;
       }
+
+      const leaderId = Number(user.id);
+
+      if (isNaN(leaderId)) {
+        toast({
+          title: "오류",
+          description: "유효하지 않은 사용자 ID입니다.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // ✅ API 호출 (leaderId 필수)
+      await groupAPI.createGroup({
+        groupName: newGroup.groupName,
+        leaderId: leaderId,
+      });
 
       toast({ title: "성공", description: "그룹이 생성되었습니다." });
       setCreateGroupDialogOpen(false);
@@ -247,7 +236,7 @@ const GroupStudy: React.FC = () => {
       return;
     }
 
-    if (!newRoom.title.trim() || selectedGroupId === null) {
+    if (!newRoom.roomName.trim() || selectedGroupId === null) {
       toast({
         title: "오류",
         description: "방 제목과 그룹을 선택해주세요.",
@@ -256,21 +245,44 @@ const GroupStudy: React.FC = () => {
       return;
     }
 
+    // ✅ user.id 확인
+    if (!user.id) {
+      toast({
+        title: "오류",
+        description: "사용자 ID를 찾을 수 없습니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const creatorId = Number(user.id);
+
+    if (isNaN(creatorId)) {
+      toast({
+        title: "오류",
+        description: "유효하지 않은 사용자 ID입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
+      // ✅ API 스키마에 맞게 수정
       await studyRoomAPI.createRoom({
-        title: newRoom.title,
-        groupId: selectedGroupId.toString(),
-        maxParticipants: newRoom.maxParticipants,
-        studyHours: newRoom.studyHours,
+        groupId: selectedGroupId, // ✅ number 타입
+        roomName: newRoom.roomName,
         studyField: newRoom.studyField,
+        studyHours: newRoom.studyHours,
+        maxMembers: newRoom.maxMembers,
+        creatorId: creatorId, // ✅ number 타입
       });
 
       toast({ title: "성공", description: "스터디 방이 생성되었습니다." });
       setCreateRoomDialogOpen(false);
       setNewRoom({
-        title: "",
-        maxParticipants: 4,
+        roomName: "",
+        maxMembers: 4,
         studyHours: 2,
         studyField: "프로그래밍",
       });
@@ -289,9 +301,31 @@ const GroupStudy: React.FC = () => {
   const handleDeleteGroup = async (groupId: number) => {
     if (!confirm("정말로 이 그룹을 삭제하시겠습니까?")) return;
 
+    // ✅ user.id 확인
+    if (!user || !user.id) {
+      toast({
+        title: "오류",
+        description: "사용자 정보를 찾을 수 없습니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userId = Number(user.id);
+
+    if (isNaN(userId)) {
+      toast({
+        title: "오류",
+        description: "유효하지 않은 사용자 ID입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      await groupAPI.deleteGroup(groupId);
+      // ✅ userId 파라미터 추가
+      await groupAPI.deleteGroup(groupId, userId);
       toast({ title: "성공", description: "그룹이 삭제되었습니다." });
       await loadMyGroups();
     } catch (error: any) {
@@ -315,9 +349,31 @@ const GroupStudy: React.FC = () => {
       return;
     }
 
+    // ✅ user.id 확인
+    if (!user.id) {
+      toast({
+        title: "오류",
+        description: "사용자 ID를 찾을 수 없습니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const memberId = Number(user.id);
+
+    if (isNaN(memberId)) {
+      toast({
+        title: "오류",
+        description: "유효하지 않은 사용자 ID입니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      await studyRoomAPI.joinRoom(roomId.toString());
+      // ✅ memberId 파라미터 추가
+      await studyRoomAPI.joinRoom(roomId, memberId);
       toast({ title: "성공", description: "스터디 방에 참여했습니다." });
 
       // ✅ 스터디룸 페이지로 이동
@@ -469,9 +525,9 @@ const GroupStudy: React.FC = () => {
                     <Label>방 제목 *</Label>
                     <Input
                       placeholder="방 제목을 입력하세요"
-                      value={newRoom.title}
+                      value={newRoom.roomName}
                       onChange={(e) =>
-                        setNewRoom({ ...newRoom, title: e.target.value })
+                        setNewRoom({ ...newRoom, roomName: e.target.value })
                       }
                       maxLength={30}
                     />
@@ -499,11 +555,11 @@ const GroupStudy: React.FC = () => {
                       <Label>최대 인원</Label>
                       <select
                         className="w-full p-2 border border-gray-300 rounded-md"
-                        value={newRoom.maxParticipants}
+                        value={newRoom.maxMembers}
                         onChange={(e) =>
                           setNewRoom({
                             ...newRoom,
-                            maxParticipants: parseInt(e.target.value),
+                            maxMembers: parseInt(e.target.value),
                           })
                         }
                       >
@@ -547,7 +603,7 @@ const GroupStudy: React.FC = () => {
                       onClick={handleCreateRoom}
                       disabled={
                         loading ||
-                        !newRoom.title.trim() ||
+                        !newRoom.roomName.trim() ||
                         selectedGroupId === null
                       }
                     >
@@ -667,17 +723,18 @@ const GroupStudy: React.FC = () => {
                           >
                             <CardHeader className="pb-3">
                               <CardTitle className="text-base">
-                                {room.title}
+                                {room.roomName}
                               </CardTitle>
                               <div className="flex items-center space-x-4 text-sm text-gray-500">
                                 <span className="flex items-center">
                                   <Users className="w-4 h-4 mr-1" />
-                                  {room.currentParticipants || 0}/
-                                  {room.maxParticipants}
+                                  {room.currentMembers || 0}/{room.maxMembers}
                                 </span>
                                 <span className="flex items-center">
                                   <Clock className="w-4 h-4 mr-1" />
-                                  남은 시간
+                                  {room.remainingMinutes
+                                    ? `${room.remainingMinutes}분 남음`
+                                    : "진행 중"}
                                 </span>
                               </div>
                             </CardHeader>
@@ -692,10 +749,12 @@ const GroupStudy: React.FC = () => {
                                   onClick={() => handleJoinRoom(room.id)}
                                   disabled={
                                     loading ||
-                                    (room.isFull !== undefined && room.isFull)
+                                    room.currentMembers >= room.maxMembers
                                   }
                                 >
-                                  {room.isFull ? "정원 초과" : "입장하기"}
+                                  {room.currentMembers >= room.maxMembers
+                                    ? "정원 초과"
+                                    : "입장하기"}
                                 </Button>
                               </div>
                             </CardContent>
