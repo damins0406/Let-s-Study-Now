@@ -30,8 +30,7 @@ public class GroupController {
     public ResponseEntity<GroupResponse> createGroup(
             @RequestBody CreateGroupRequest request,
             @AuthenticationPrincipal CustomUser customUser) {
-        // JWT 토큰에서 사용자 ID 추출
-        Long leaderId = customUser.getMember().getId();
+        Long leaderId = customUser.id;
         GroupResponse response = groupService.createGroup(request.groupName(), leaderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -56,8 +55,7 @@ public class GroupController {
     @Operation(summary = "내 그룹 목록", description = "내가 만든 그룹 목록을 조회합니다")
     @GetMapping("/my")
     public ResponseEntity<List<GroupResponse>> getMyGroups(@AuthenticationPrincipal CustomUser customUser) {
-        // JWT 토큰에서 사용자 ID 추출
-        Long leaderId = customUser.getMember().getId();
+        Long leaderId = customUser.id;
         List<GroupResponse> responses = groupService.getMyGroups(leaderId);
         return ResponseEntity.ok(responses);
     }
@@ -68,8 +66,7 @@ public class GroupController {
     public ResponseEntity<Void> deleteGroup(
             @PathVariable Long groupId,
             @AuthenticationPrincipal CustomUser customUser) {
-        // JWT 토큰에서 사용자 ID 추출
-        Long userId = customUser.getMember().getId();
+        Long userId = customUser.id;
         groupService.deleteGroup(groupId, userId);
         return ResponseEntity.noContent().build();
     }
