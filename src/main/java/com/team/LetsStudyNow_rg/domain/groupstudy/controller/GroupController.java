@@ -3,10 +3,12 @@ package com.team.LetsStudyNow_rg.domain.groupstudy.controller;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.service.GroupService;
+import com.team.LetsStudyNow_rg.global.auth.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,8 +27,12 @@ public class GroupController {
     // 그룹 생성 (SRS 6.2.1, 6.2.2)
     @Operation(summary = "그룹 생성", description = "새로운 그룹을 생성합니다")
     @PostMapping
-    public ResponseEntity<GroupResponse> createGroup(@RequestBody CreateGroupRequest request) {
-        GroupResponse response = groupService.createGroup(request);
+    public ResponseEntity<GroupResponse> createGroup(
+            @RequestBody CreateGroupRequest request,
+            @AuthenticationPrincipal CustomUser customUser) {
+        // JWT 토큰에서 사용자 ID 추출
+        Long leaderId = customUser.getMember().getId();
+        GroupResponse response = groupService.createGroup(request.groupName(), leaderId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -49,7 +55,9 @@ public class GroupController {
     // 내가 만든 그룹 목록
     @Operation(summary = "내 그룹 목록", description = "내가 만든 그룹 목록을 조회합니다")
     @GetMapping("/my")
-    public ResponseEntity<List<GroupResponse>> getMyGroups(@RequestParam Long leaderId) {
+    public ResponseEntity<List<GroupResponse>> getMyGroups(@AuthenticationPrincipal CustomUser customUser) {
+        // JWT 토큰에서 사용자 ID 추출
+        Long leaderId = customUser.getMember().getId();
         List<GroupResponse> responses = groupService.getMyGroups(leaderId);
         return ResponseEntity.ok(responses);
     }
@@ -59,7 +67,9 @@ public class GroupController {
     @DeleteMapping("/{groupId}")
     public ResponseEntity<Void> deleteGroup(
             @PathVariable Long groupId,
-            @RequestParam Long userId) {
+            @AuthenticationPrincipal CustomUser customUser) {
+        // JWT 토큰에서 사용자 ID 추출
+        Long userId = customUser.getMember().getId();
         groupService.deleteGroup(groupId, userId);
         return ResponseEntity.noContent().build();
     }
