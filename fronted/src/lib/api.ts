@@ -218,6 +218,21 @@ export interface Checklist {
   createdAt: string;
 }
 
+// ✅ 타이머 관련 타입
+export type TimerMode = "STUDY" | "REST";
+export type TimerStatus = "RUNNING" | "PAUSED" | "STOPPED";
+
+export interface TimerStatusResponse {
+  timerId: number;
+  memberId: number;
+  roomId: number;
+  timerMode: TimerMode;
+  timerStatus: TimerStatus;
+  currentSessionSeconds: number;
+  totalStudySeconds: number;
+  totalStudyTime: string;
+}
+
 //
 // ✅ API 함수들
 //
@@ -427,4 +442,23 @@ export const checklistAPI = {
     apiClient.get<{ dates: string[] }>(
       `/api/checklist/month-summary?year=${year}&month=${month}`
     ),
+};
+
+// ⏱️ 타이머 관련
+export const timerAPI = {
+  // POST /api/timer/start - 타이머 시작
+  startTimer: (roomId: number, isRoomCreator: boolean) => {
+    const params = new URLSearchParams();
+    params.append("roomId", roomId.toString());
+    params.append("isRoomCreator", isRoomCreator.toString());
+    return apiClient.post<TimerStatusResponse>(
+      `/api/timer/start?${params.toString()}`
+    );
+  },
+
+  // POST /api/timer/end - 타이머 종료
+  endTimer: () => apiClient.post<void>("/api/timer/end"),
+
+  // GET /api/timer/status - 타이머 상태 조회
+  getTimerStatus: () => apiClient.get<TimerStatusResponse>("/api/timer/status"),
 };
