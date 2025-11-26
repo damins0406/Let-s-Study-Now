@@ -89,7 +89,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  // 프로필 업데이트
+  // ✅ 프로필 업데이트 (PATCH /api/update/profile)
   const handleProfileUpdate = async () => {
     if (!profileData.studyField.trim()) {
       toast({
@@ -102,15 +102,39 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ FormData로 파일 전송
+      // ✅ FormData 생성 (백엔드 API: data + image)
       const formData = new FormData();
-      formData.append("studyField", profileData.studyField);
-      formData.append("bio", profileData.bio);
 
-      if (profileImage) {
-        formData.append("profileImage", profileImage); // ✅ 파일 추가
+      // ✅ 방법 1: data를 JSON 문자열로 전송 (표준 방식)
+      const dataObj: any = {
+        studyField: profileData.studyField,
+      };
+
+      if (profileData.bio && profileData.bio.trim()) {
+        dataObj.bio = profileData.bio;
       }
 
+      // data를 Blob으로 변환하여 전송 (Content-Type: application/json)
+      const dataBlob = new Blob([JSON.stringify(dataObj)], {
+        type: "application/json",
+      });
+      formData.append("data", dataBlob);
+
+      // ✅ image 파일이 있으면 추가 (선택 사항)
+      if (profileImage) {
+        formData.append("image", profileImage);
+      }
+
+      console.log("=== Sending FormData ===");
+      console.log("data:", JSON.stringify(dataObj));
+      console.log("image:", profileImage?.name || "없음");
+
+      // FormData 내용 확인 (디버깅)
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      // ✅ PATCH 요청
       await authAPI.updateProfile(formData);
 
       toast({
@@ -118,9 +142,11 @@ const Profile: React.FC = () => {
         description: "프로필이 업데이트되었습니다.",
       });
 
+      // 사용자 정보 새로고침
       await refreshUser();
       setProfileImage(null);
     } catch (error: any) {
+      console.error("프로필 업데이트 에러:", error);
       toast({
         title: "오류",
         description: error?.message || "프로필 업데이트에 실패했습니다.",
@@ -131,7 +157,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  // 비밀번호 변경
+  // ✅ 비밀번호 변경 (PATCH /api/update/password)
   const handlePasswordChange = async () => {
     if (
       !passwordData.currentPassword ||
@@ -166,7 +192,8 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      await authAPI.updatePassword({
+      // ✅ PATCH 요청, Response: string
+      const response = await authAPI.updatePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
         newPasswordCheck: passwordData.newPasswordCheck,
@@ -174,7 +201,10 @@ const Profile: React.FC = () => {
 
       toast({
         title: "성공",
-        description: "비밀번호가 변경되었습니다.",
+        description:
+          typeof response === "string"
+            ? response
+            : "비밀번호가 변경되었습니다.",
       });
 
       setPasswordData({
@@ -193,7 +223,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  // 계정 삭제
+  // ✅ 계정 삭제 (DELETE /api/delete/account)
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
       toast({
@@ -212,16 +242,27 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      await authAPI.deleteAccount(deletePassword);
+      console.log("=== 계정 삭제 시작 ===");
+      console.log("deletePassword:", deletePassword ? "입력됨" : "비어있음");
+
+      // ✅ DELETE 요청, Response: string
+      const response = await authAPI.deleteAccount(deletePassword);
+
+      console.log("=== 계정 삭제 응답 ===");
+      console.log("response:", response);
 
       toast({
         title: "계정 삭제",
-        description: "계정이 성공적으로 삭제되었습니다.",
+        description:
+          typeof response === "string"
+            ? response
+            : "계정이 성공적으로 삭제되었습니다.",
       });
 
       // 로그아웃 처리
       window.location.href = "#/login";
     } catch (error: any) {
+      console.error("=== 계정 삭제 에러 ===", error);
       toast({
         title: "오류",
         description: error?.message || "계정 삭제에 실패했습니다.",

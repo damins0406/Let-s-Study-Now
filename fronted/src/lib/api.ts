@@ -257,39 +257,30 @@ export const authAPI = {
   getProfile: () => apiClient.get<User>("/api/profile"),
   logout: () => apiClient.post<{ message: string }>("/api/logout"),
 
-  updateProfile: (
-    data:
-      | FormData
-      | {
-          profileImage?: string;
-          studyField?: string;
-          bio?: string;
-          profileImageFile?: File;
-        }
-  ) => {
-    // ✅ 이미 FormData면 그대로 사용
-    if (data instanceof FormData) {
-      return apiClient.put<User>("/api/update/profile", data);
-    }
-
-    // ✅ 객체면 FormData로 변환
-    const formData = new FormData();
-    if (data.profileImage) formData.append("profileImage", data.profileImage);
-    if (data.studyField) formData.append("studyField", data.studyField);
-    if (data.bio) formData.append("bio", data.bio);
-    if (data.profileImageFile)
-      formData.append("profileImage", data.profileImageFile); // ✅ 필드명 통일
-    return apiClient.put<User>("/api/update/profile", formData);
+  // ✅ PATCH /api/update/profile
+  // Request: FormData with "data" (JSON string) and "image" (binary)
+  updateProfile: (data: FormData) => {
+    return apiClient.patch<User>("/api/update/profile", data);
   },
 
+  // ✅ PATCH /api/update/password
+  // Request: JSON { currentPassword, newPassword, newPasswordCheck }
+  // Response: 200 - string, 400 - string
   updatePassword: (data: {
     currentPassword: string;
     newPassword: string;
     newPasswordCheck: string;
-  }) => apiClient.put<{ message: string }>("/api/update/password", data),
+  }) => apiClient.patch<string>("/api/update/password", data),
 
-  deleteAccount: (password: string) =>
-    apiClient.delete<{ message: string }>("/api/delete/account", { password }),
+  // ✅ DELETE /api/delete/account
+  // Request: JSON { password }
+  // Response: 200 - string, 400 - string
+  deleteAccount: (password: string) => {
+    const formData = new FormData();
+    formData.append("password", password);
+    console.log("=== DELETE /api/delete/account (FormData) ===");
+    return apiClient.delete<string>("/api/delete/account", formData);
+  },
 };
 
 // 👥 그룹 관련
