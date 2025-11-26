@@ -1,7 +1,6 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.service;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.Group;
-import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupMemberRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupRepository;
@@ -27,14 +26,14 @@ public class GroupService {
 
     // 그룹 생성
     @Transactional
-    public GroupResponse createGroup(CreateGroupRequest request) {
+    public GroupResponse createGroup(String groupName, Long leaderId) {
         // 1. 그룹 이름 입력 (SRS 6.2.2)
-        if (request.getGroupName() == null || request.getGroupName().trim().isEmpty()) {
+        if (groupName == null || groupName.trim().isEmpty()) {
             throw new IllegalArgumentException("그룹 이름을 입력해주세요");
         }
 
         // 2. 그룹 생성
-        Group group = new Group(request.getGroupName(), request.getLeaderId());
+        Group group = new Group(groupName, leaderId);
 
         // 3. 저장
         Group savedGroup = groupRepository.save(group);

@@ -20,17 +20,13 @@ public class MyUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException{
-        var user = memberRepository.findByEmail(email)
+        var member = memberRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("계정이 없습니다."));
 
         // 일반유저: ROLE_USER, 관리자: ROLE_ADMIN
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority(user.getRole().name()));
+        authorities.add(new SimpleGrantedAuthority(member.getRole().name()));
 
-        CustomUser customUser = new CustomUser(user.getEmail(), user.getPassword(), authorities);
-        customUser.id = user.getId();
-        customUser.username = user.getUsername();
-        customUser.username = user.getEmail();
-        return customUser;
+        return new CustomUser(member, authorities);
     }
 }
