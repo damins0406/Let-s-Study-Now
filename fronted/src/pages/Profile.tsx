@@ -102,25 +102,24 @@ const Profile: React.FC = () => {
 
     setLoading(true);
     try {
-      const updateData: any = {
-        studyField: profileData.studyField,
-        bio: profileData.bio,
-      };
+      // ✅ FormData로 파일 전송
+      const formData = new FormData();
+      formData.append("studyField", profileData.studyField);
+      formData.append("bio", profileData.bio);
 
       if (profileImage) {
-        updateData.profileImageFile = profileImage;
+        formData.append("profileImage", profileImage); // ✅ 파일 추가
       }
 
-      await authAPI.updateProfile(updateData);
+      await authAPI.updateProfile(formData);
 
       toast({
         title: "성공",
         description: "프로필이 업데이트되었습니다.",
       });
 
-      // 사용자 정보 새로고침
       await refreshUser();
-      setProfileImage(null); // 이미지 초기화
+      setProfileImage(null);
     } catch (error: any) {
       toast({
         title: "오류",
