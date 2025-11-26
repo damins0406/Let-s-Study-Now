@@ -83,38 +83,34 @@ public class OpenStudyRoomController {
     }
     
     /**
-     * 활성 방 목록 조회 (공부 분야 필터링 지원)
+     * 활성 방 목록 조회 (공부 분야 필터링 및 페이지네이션 지원)
      */
     @Operation(
-        summary = "활성 방 목록 조회 (필터링 지원)", 
-        description = "현재 활성화된 오픈 스터디 방 목록을 조회합니다. studyField 파라미터로 공부 분야별 필터링이 가능하며, 생략 시 최신 생성 순으로 전체 조회합니다."
+        summary = "활성 방 목록 조회 (필터링 및 페이지네이션 지원)", 
+        description = "현재 활성화된 오픈 스터디 방 목록을 페이지 단위로 조회합니다. " +
+                      "studyField 파라미터로 공부 분야별 필터링이 가능하며, 생략 시 최신 생성 순으로 전체 조회합니다. " +
+                      "한 페이지당 10개의 방을 표시하며, page 파라미터로 페이지 번호를 지정할 수 있습니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "방 목록 조회 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 공부 분야)")
+            @ApiResponse(responseCode = "400", description = "잘못된 요청 (유효하지 않은 공부 분야 또는 페이지 번호)")
     })
     @GetMapping("/rooms")
     public ResponseEntity<?> getRoomList(
-        @RequestParam(required = false) String studyField
+        @RequestParam(required = false) String studyField,
+        @RequestParam(defaultValue = "1") int page
     ) {
+        log.info("방 목록 조회 요청 - studyField: {}, page: {}", studyField, page);
+        
         try {
-            log.info("방 목록 조회 요청 - studyField: {}", studyField);
-            List<OpenStudyRoomListDto> rooms = openStudyRoomService.getRoomListByStudyField(studyField);
+            var pageResponse = openStudyRoomService.getRoomListByStudyFieldWithPagination(studyField, page);
             
-            log.info("방 목록 조회 완료 - 결과 개수: {}", rooms.size());
-            
-            // 조회 결과가 없을 경우 안내 메시지
-            if (rooms.isEmpty()) {
-                return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "message", "조회된 스터디 방이 없습니다.",
-                    "rooms", rooms
-                ));
-            }
+            log.info("방 목록 조회 완료 - 결과 개수: {}, 전체 페이지: {}", 
+                    pageResponse.content().size(), pageResponse.totalPages());
             
             return ResponseEntity.ok(Map.of(
                 "success", true,
-                "rooms", rooms
+                "data", pageResponse
             ));
         } catch (IllegalArgumentException e) {
             log.error("잘못된 요청: {}", e.getMessage());

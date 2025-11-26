@@ -3,6 +3,7 @@ package com.team.LetsStudyNow_rg.domain.openstudy;
 import com.team.LetsStudyNow_rg.domain.member.entity.Member;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.OpenStudyRoomCreateDto;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.OpenStudyRoomListDto;
+import com.team.LetsStudyNow_rg.domain.openstudy.dto.PageResponseDto;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.RoomJoinResultDto;
 import com.team.LetsStudyNow_rg.domain.openstudy.exception.AlreadyInRoomException;
 import com.team.LetsStudyNow_rg.domain.openstudy.exception.RoomDeletingException;
@@ -10,6 +11,9 @@ import com.team.LetsStudyNow_rg.domain.openstudy.exception.RoomFullException;
 import com.team.LetsStudyNow_rg.domain.openstudy.exception.RoomNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,37 +95,35 @@ public class OpenStudyRoomService {
     }
 
     /**
-     * 공부 분야별로 필터링된 방 목록 조회
+     * 공부 분야별로 필터링된 방 목록 조회 (페이지네이션)
      * studyFieldStr이 null이거나 빈 문자열이면 최신 생성 순으로 전체 조회
+     * 한 페이지당 10개씩 고정
      *
-     * @param studyFieldStr 공부 분야 한글 설명 (null이면 전체 조회)
-     * @return 방 목록 DTO (최신순 정렬)
+     * @param studyFieldStr 공부 분야 (null이면 전체 조회)
+     * @param page 페이지 번호 (1부터 시작)
+     * @return 페이지네이션 응답 DTO
      */
     @Transactional(readOnly = true)
-    public List<OpenStudyRoomListDto> getRoomListByStudyField(String studyFieldStr) {
-        log.info("공부 분야별 방 목록 조회 - 필터: '{}'", studyFieldStr);
+    public PageResponseDto<OpenStudyRoomListDto> getRoomListByStudyFieldWithPagination(String studyFieldStr, int page) {
+        log.info("공부 분야별 방 목록 조회 (페이징) - 필터: '{}', 페이지: {}", studyFieldStr, page);
         
-        try {
-            // 공부 분야가 지정되지 않은 경우 최신 생성 순으로 전체 조회
-            if (studyFieldStr == null || studyFieldStr.trim().isEmpty()) {
-                log.info("필터 없음 - 전체 방 목록 조회");
-                List<OpenStudyRoom> rooms = roomRepository.findByStatusInOrderByCreatedAtDesc(
-                        List.of(RoomStatus.ACTIVE, RoomStatus.PENDING_DELETE));
-                log.info("조회된 방 개수: {}", rooms.size());
-                
-                return rooms.stream()
-                    .map(room -> {
-                        try {
-                            return OpenStudyRoomListDto.from(room);
-                        } catch (Exception e) {
-                            log.error("DTO 변환 실패 - roomId: {}, error: {}", room.getId(), e.getMessage(), e);
-                            throw e;
-                        }
-                    })
-                    .collect(Collectors.toList());
-            }
-            
-            // 한글 설명을 StudyField enum으로 변환
+        // 페이지 번호 검증 (1부터 시작)
+        if (page < 1) {
+            throw new IllegalArgumentException("페이지 번호는 1 이상이어야 합니다");
+        }
+        
+        // Pageable 생성
+        Pageable pageable = PageRequest.of(page - 1, 10);
+        
+        Page<OpenStudyRoom> roomPage;
+        
+        // 공부 분야가 지정되지 않은 경우 최신 생성 순으로 전체 조회
+        if (studyFieldStr == null || studyFieldStr.trim().isEmpty()) {
+            log.info("필터 없음 - 전체 방 목록 조회 (페이징)");
+            roomPage = roomRepository.findByStatusInOrderByCreatedAtDesc(
+                    List.of(RoomStatus.ACTIVE, RoomStatus.PENDING_DELETE),
+                    pageable);
+        } else {
             StudyField studyField = StudyField.fromDescription(studyFieldStr.trim());
             if (studyField == null) {
                 log.error("유효하지 않은 공부 분야: '{}'", studyFieldStr);
@@ -129,25 +131,19 @@ public class OpenStudyRoomService {
             }
             
             log.info("공부 분야 필터 적용: {} ({})", studyField, studyField.getDescription());
-            List<OpenStudyRoom> rooms = roomRepository.findByStudyFieldAndStatusInOrderByCreatedAtDesc(
+            roomPage = roomRepository.findByStudyFieldAndStatusInOrderByCreatedAtDesc(
                     studyField,
-                    List.of(RoomStatus.ACTIVE, RoomStatus.PENDING_DELETE));
-            log.info("조회된 방 개수: {}", rooms.size());
-            
-            return rooms.stream()
-                .map(room -> {
-                    try {
-                        return OpenStudyRoomListDto.from(room);
-                    } catch (Exception e) {
-                        log.error("DTO 변환 실패 - roomId: {}, error: {}", room.getId(), e.getMessage(), e);
-                        throw e;
-                    }
-                })
-                .collect(Collectors.toList());
-        } catch (Exception e) {
-            log.error("방 목록 조회 중 오류 발생", e);
-            throw e;
+                    List.of(RoomStatus.ACTIVE, RoomStatus.PENDING_DELETE),
+                    pageable);
         }
+        
+        log.info("조회된 방 개수: {}, 전체 페이지: {}, 전체 데이터: {}", 
+                roomPage.getContent().size(), roomPage.getTotalPages(), roomPage.getTotalElements());
+
+        // Entity를 DTO로 변환
+        Page<OpenStudyRoomListDto> dtoPage = roomPage.map(OpenStudyRoomListDto::from);
+        
+        return PageResponseDto.of(dtoPage, page);
     }
 
     /**
