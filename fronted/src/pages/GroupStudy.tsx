@@ -22,7 +22,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { groupAPI, studyRoomAPI, Group, GroupStudyRoom } from "@/lib/api";
+import {
+  groupAPI,
+  studyRoomAPI,
+  authAPI,
+  Group,
+  GroupStudyRoom,
+} from "@/lib/api";
 import { Users, Plus, Copy, Trash2, Clock, BookOpen } from "lucide-react";
 import Navbar from "@/components/Navbar";
 
@@ -62,13 +68,6 @@ const GroupStudy: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      console.log("==== User Object ====");
-      console.log("Full user:", user);
-      console.log("user.id:", user.id);
-      console.log("user.id type:", typeof user.id);
-      console.log("Number(user.id):", Number(user.id));
-      console.log("isNaN(Number(user.id)):", isNaN(Number(user.id)));
-      console.log("====================");
       loadMyGroups();
     }
   }, [user]);
@@ -78,65 +77,45 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      console.log("Attempting to load groups with session-based auth...");
-
-      // ✅ 먼저 세션 기반으로 시도 (leaderId 없이)
+      // ✅ 먼저 세션 기반으로 시도
       try {
         const groups = await groupAPI.getMyGroups();
         setMyGroups(groups);
+
+        // 각 그룹의 방 목록 로드
         for (const group of groups) {
           await loadGroupRooms(group.id);
         }
+
         console.log("Successfully loaded groups using session");
-        return;
       } catch (sessionError: any) {
-        console.log(
-          "Session-based failed, trying with leaderId...",
-          sessionError?.message
-        );
+        console.error("Session-based failed:", sessionError);
 
-        console.log("user object:", user);
+        // ✅ Fallback: Profile API에서 사용자 정보 다시 가져오기
+        try {
+          const profile = await authAPI.getProfile();
+          console.log("Profile data:", profile);
 
-        let leaderId: number;
+          // Profile에서 leaderId를 찾을 수 있는지 확인
+          // 보통 백엔드가 email이나 username으로 leaderId를 찾을 수 있음
+          toast({
+            title: "안내",
+            description: "세션이 만료되었습니다. 다시 로그인해주세요.",
+            variant: "destructive",
+          });
 
-        if (user.id) {
-          leaderId = Number(user.id);
-        } else if (user.username) {
-          console.error(
-            "user.id is undefined, backend should return user ID in /api/profile"
-          );
+          // 로그인 페이지로 리다이렉트
+          setTimeout(() => {
+            window.location.href = "#/login";
+          }, 2000);
+        } catch (profileError) {
+          console.error("Profile fetch failed:", profileError);
           toast({
             title: "오류",
             description:
               "사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.",
             variant: "destructive",
           });
-          return;
-        } else {
-          console.error("Both user.id and user.username are undefined");
-          toast({
-            title: "오류",
-            description: "사용자 정보가 없습니다. 다시 로그인해주세요.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (isNaN(leaderId)) {
-          console.error("user object:", user);
-          toast({
-            title: "오류",
-            description: `유효하지 않은 사용자 ID입니다. user.id = ${user.id}`,
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log("Attempting with leaderId:", leaderId);
-        const groups = await groupAPI.getMyGroupsWithId(leaderId);
-        setMyGroups(groups);
-        for (const group of groups) {
-          await loadGroupRooms(group.id);
         }
       }
     } catch (error: any) {
@@ -181,33 +160,9 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ user.id 확인
-      if (!user.id) {
-        toast({
-          title: "오류",
-          description: "사용자 ID를 찾을 수 없습니다. 다시 로그인해주세요.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      const leaderId = Number(user.id);
-
-      if (isNaN(leaderId)) {
-        toast({
-          title: "오류",
-          description: "유효하지 않은 사용자 ID입니다.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // ✅ API 호출 (leaderId 필수)
+      // ✅ JWT에서 leaderId 자동 추출 및 멤버 자동 추가 (백엔드에서 처리)
       await groupAPI.createGroup({
         groupName: newGroup.groupName,
-        leaderId: leaderId,
       });
 
       toast({ title: "성공", description: "그룹이 생성되었습니다." });
@@ -245,37 +200,15 @@ const GroupStudy: React.FC = () => {
       return;
     }
 
-    // ✅ user.id 확인
-    if (!user.id) {
-      toast({
-        title: "오류",
-        description: "사용자 ID를 찾을 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const creatorId = Number(user.id);
-
-    if (isNaN(creatorId)) {
-      toast({
-        title: "오류",
-        description: "유효하지 않은 사용자 ID입니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // ✅ API 스키마에 맞게 수정
+      // ✅ JWT에서 creatorId 자동 추출 (파라미터 불필요)
       await studyRoomAPI.createRoom({
-        groupId: selectedGroupId, // ✅ number 타입
+        groupId: selectedGroupId,
         roomName: newRoom.roomName,
         studyField: newRoom.studyField,
         studyHours: newRoom.studyHours,
         maxMembers: newRoom.maxMembers,
-        creatorId: creatorId, // ✅ number 타입
       });
 
       toast({ title: "성공", description: "스터디 방이 생성되었습니다." });
@@ -301,31 +234,10 @@ const GroupStudy: React.FC = () => {
   const handleDeleteGroup = async (groupId: number) => {
     if (!confirm("정말로 이 그룹을 삭제하시겠습니까?")) return;
 
-    // ✅ user.id 확인
-    if (!user || !user.id) {
-      toast({
-        title: "오류",
-        description: "사용자 정보를 찾을 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const userId = Number(user.id);
-
-    if (isNaN(userId)) {
-      toast({
-        title: "오류",
-        description: "유효하지 않은 사용자 ID입니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // ✅ userId 파라미터 추가
-      await groupAPI.deleteGroup(groupId, userId);
+      // ✅ JWT에서 userId 자동 추출 (파라미터 불필요)
+      await groupAPI.deleteGroup(groupId);
       toast({ title: "성공", description: "그룹이 삭제되었습니다." });
       await loadMyGroups();
     } catch (error: any) {
@@ -349,31 +261,10 @@ const GroupStudy: React.FC = () => {
       return;
     }
 
-    // ✅ user.id 확인
-    if (!user.id) {
-      toast({
-        title: "오류",
-        description: "사용자 ID를 찾을 수 없습니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const memberId = Number(user.id);
-
-    if (isNaN(memberId)) {
-      toast({
-        title: "오류",
-        description: "유효하지 않은 사용자 ID입니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // ✅ memberId 파라미터 추가
-      await studyRoomAPI.joinRoom(roomId, memberId);
+      // ✅ JWT에서 memberId 자동 추출 (파라미터 불필요)
+      await studyRoomAPI.joinRoom(roomId);
       toast({ title: "성공", description: "스터디 방에 참여했습니다." });
 
       // ✅ 스터디룸 페이지로 이동
