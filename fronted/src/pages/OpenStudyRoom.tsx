@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { openStudyAPI, OpenStudyRoom } from "@/lib/api";
+import { openStudyAPI, OpenStudyRoom, timerAPI, TimerStatusResponse } from "@/lib/api";
 import {
   Users,
   Clock,
@@ -100,8 +100,10 @@ const OpenStudyRoomPage: React.FC = () => {
   // My Status
   const [myStatus, setMyStatus] = useState<"studying" | "resting">("studying");
 
-  // Timer
-  const [timerSeconds, setTimerSeconds] = useState(0);
+  // Timer - 백엔드 연동
+  const [timerStatus, setTimerStatus] = useState<TimerStatusResponse | null>(null);
+  const [currentSeconds, setCurrentSeconds] = useState(0);
+  const intervalRef = useRef<any>(null);
 
   // Today's Stats
   const [todayStats, setTodayStats] = useState({
@@ -159,23 +161,27 @@ const OpenStudyRoomPage: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 타이머 로직
+  // 타이머 실시간 UI 업데이트 - myStatus에 따라 작동
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    // 기존 interval 정리
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
 
+    // ✅ "공부중" 상태일 때만 타이머 시작
     if (myStatus === "studying") {
-      interval = setInterval(() => {
-        setTimerSeconds((prev) => prev + 1);
-        setTodayStats((prev) => ({
-          ...prev,
-          totalStudyTime: prev.totalStudyTime + 1,
-        }));
+      // ✅ 함수형 업데이트를 사용하여 항상 최신 상태를 참조
+      intervalRef.current = setInterval(() => {
+        setCurrentSeconds((prevSeconds) => prevSeconds + 1);
       }, 1000);
     }
 
+    // 메모리 누수 방지를 위한 클린업
     return () => {
-      if (interval) {
-        clearInterval(interval);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [myStatus]);
@@ -237,6 +243,33 @@ const OpenStudyRoomPage: React.FC = () => {
           }
         } else {
           console.log("Room creator, skipping joinRoom call");
+        }
+
+        // ✅ 타이머 시작 연동
+        try {
+          const roomIdNum = parseInt(roomId, 10);
+          if (!isNaN(roomIdNum)) {
+            console.log("Calling timerAPI.startTimer with:", { roomId: roomIdNum, isRoomCreator: isCreator });
+            const timerResponse = await timerAPI.startTimer(roomIdNum, isCreator);
+            console.log("Timer API response:", timerResponse);
+            console.log("Timer status value:", timerResponse.timerStatus);
+            
+            setTimerStatus(timerResponse);
+            setCurrentSeconds(timerResponse.currentSessionSeconds);
+            console.log("Timer state updated:", {
+              timerStatus: timerResponse.timerStatus,
+              currentSessionSeconds: timerResponse.currentSessionSeconds
+            });
+          } else {
+            console.error("Invalid roomId:", roomId);
+          }
+        } catch (timerError: any) {
+          console.error("Failed to start timer:", timerError);
+          console.error("Timer error details:", {
+            message: timerError?.message,
+            stack: timerError?.stack
+          });
+          // 타이머 시작 실패해도 방 입장은 계속 진행
         }
 
         localStorage.setItem("currentOpenStudyRoom", roomId);
@@ -370,7 +403,7 @@ const OpenStudyRoomPage: React.FC = () => {
         `${
           user?.username
         }님이 휴식 모드로 전환했습니다. (공부 시간: ${formatTime(
-          timerSeconds
+          currentSeconds
         )})`
       );
     } else if (newStatus === "studying" && myStatus === "resting") {
@@ -390,7 +423,7 @@ const OpenStudyRoomPage: React.FC = () => {
   };
 
   const handleTimerReset = () => {
-    setTimerSeconds(0);
+    setCurrentSeconds(0);
     toast({
       title: "타이머 리셋",
       description: "타이머가 00:00으로 초기화되었습니다.",
@@ -622,6 +655,23 @@ const OpenStudyRoomPage: React.FC = () => {
       }
     }
 
+    // ✅ 타이머 종료 연동
+    try {
+      await timerAPI.endTimer();
+      console.log("Timer ended successfully");
+      
+      // setInterval 정리 및 currentSeconds 초기화
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      setCurrentSeconds(0);
+      setTimerStatus(null);
+    } catch (timerError: any) {
+      console.error("Failed to end timer:", timerError);
+      // 타이머 종료 실패해도 방 나가기는 계속 진행
+    }
+
     // ✅ 방장이든 아니든 leaveRoom 호출 (백엔드에서 방장이면 방 자동 삭제)
     await leaveRoom();
     toast({
@@ -802,7 +852,7 @@ const OpenStudyRoomPage: React.FC = () => {
                         : "text-gray-400"
                     }`}
                   >
-                    {formatTime(timerSeconds)}
+                    {formatTime(currentSeconds)}
                   </span>
                   {myStatus === "studying" ? (
                     <span className="flex items-center text-xs text-green-600">
