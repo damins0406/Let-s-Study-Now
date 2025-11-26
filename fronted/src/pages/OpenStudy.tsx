@@ -29,8 +29,16 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { openStudyAPI, OpenStudyRoom } from "@/lib/api";
-import { Users, Clock, BookOpen, Plus, RefreshCw } from "lucide-react";
+import { openStudyAPI, OpenStudyRoom, PageResponse } from "@/lib/api";
+import {
+  Users,
+  Clock,
+  BookOpen,
+  Plus,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 
 const STUDY_FIELDS = [
@@ -52,6 +60,11 @@ const OpenStudy: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedField, setSelectedField] = useState<string>("");
+
+  // ✅ 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
   const [newRoom, setNewRoom] = useState({
     title: "",
@@ -79,33 +92,37 @@ const OpenStudy: React.FC = () => {
     }
   }, [user]);
 
-  // ✅ 필터링 적용된 방 목록 로드
-  const loadRooms = async (studyField?: string) => {
+  // ✅ 페이지네이션 적용된 방 목록 로드
+  const loadRooms = async (studyField?: string, page: number = 1) => {
     setLoading(true);
     try {
-      const response = await openStudyAPI.getRooms(studyField);
+      const response = await openStudyAPI.getRooms(studyField, page);
       console.log("OpenStudy API Response:", response);
 
-      let roomsData: OpenStudyRoom[] = [];
-
-      if (Array.isArray(response)) {
-        roomsData = response.map((room) => ({
+      // ✅ PageResponse 구조 처리
+      if (response && response.content) {
+        const roomsData = response.content.map((room) => ({
           ...room,
-          // ✅ 백엔드가 roomName으로 보내면 title로 매핑
           title: room.title || (room as any).roomName || "",
         }));
-      } else if (response && typeof response === "object") {
-        // ✅ 타입 단언으로 처리
-        const responseObj = response as any;
-        const dataArray =
-          responseObj.content || responseObj.data || responseObj.rooms || [];
-        roomsData = dataArray.map((room: any) => ({
-          ...room,
-          title: room.title || room.roomName || "",
-        }));
-      }
 
-      setRooms(roomsData);
+        setRooms(roomsData);
+        setCurrentPage(response.currentPage);
+        setTotalPages(response.totalPages);
+        setTotalElements(response.totalElements);
+      } else {
+        // ✅ 이전 버전 호환 (배열 응답)
+        const roomsData = Array.isArray(response)
+          ? response.map((room) => ({
+              ...room,
+              title: room.title || (room as any).roomName || "",
+            }))
+          : [];
+        setRooms(roomsData);
+        setCurrentPage(1);
+        setTotalPages(1);
+        setTotalElements(roomsData.length);
+      }
     } catch (error) {
       console.error("loadRooms error:", error);
       toast({
@@ -118,10 +135,18 @@ const OpenStudy: React.FC = () => {
     setLoading(false);
   };
 
-  // ✅ 필터 변경 핸들러
+  // ✅ 필터 변경 핸들러 - 첫 페이지로 리셋
   const handleFilterChange = (field: string) => {
     setSelectedField(field);
-    loadRooms(field || undefined);
+    setCurrentPage(1);
+    loadRooms(field || undefined, 1);
+  };
+
+  // ✅ 페이지 변경 핸들러
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    loadRooms(selectedField || undefined, newPage);
   };
 
   const handleCreateRoom = async () => {
@@ -450,7 +475,7 @@ const OpenStudy: React.FC = () => {
           <div className="flex space-x-3">
             <Button
               variant="outline"
-              onClick={() => loadRooms(selectedField || undefined)}
+              onClick={() => loadRooms(selectedField || undefined, currentPage)}
               disabled={loading}
             >
               <RefreshCw
@@ -623,9 +648,16 @@ const OpenStudy: React.FC = () => {
 
         {/* 방 목록 */}
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-gray-900">
-            활성 스터디 방 ({rooms?.length || 0}개)
-          </h2>
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">
+              활성 스터디 방 ({totalElements}개)
+            </h2>
+            {totalPages > 1 && (
+              <div className="text-sm text-gray-500">
+                페이지 {currentPage} / {totalPages}
+              </div>
+            )}
+          </div>
 
           {loading && rooms.length === 0 ? (
             <div className="text-center py-12">
@@ -652,62 +684,136 @@ const OpenStudy: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rooms.map((room) => (
-                <Card
-                  key={room.id}
-                  className="hover:shadow-lg transition-shadow"
-                >
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg line-clamp-1">
-                          {room.title}
-                        </CardTitle>
-                        <div className="mt-2 flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            {room.studyField}
-                          </Badge>
-                          {room.isFull && (
-                            <Badge variant="destructive" className="text-xs">
-                              정원 마감
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {rooms.map((room) => (
+                  <Card
+                    key={room.id}
+                    className="hover:shadow-lg transition-shadow"
+                  >
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg line-clamp-1">
+                            {room.title}
+                          </CardTitle>
+                          <div className="mt-2 flex items-center gap-2">
+                            <Badge variant="secondary" className="text-xs">
+                              {room.studyField}
                             </Badge>
-                          )}
+                            {room.isFull && (
+                              <Badge variant="destructive" className="text-xs">
+                                정원 마감
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium text-gray-900">
+                            {room.currentParticipants}/{room.maxParticipants}
+                          </div>
+                          <div className="text-xs text-gray-500">참여자</div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">
-                          {room.currentParticipants}/{room.maxParticipants}
+                    </CardHeader>
+
+                    <CardContent>
+                      {room.description && (
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                          {room.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500">
+                          방장: {room.creatorUsername}
                         </div>
-                        <div className="text-xs text-gray-500">참여자</div>
+
+                        <Button
+                          size="sm"
+                          onClick={() => handleJoinRoom(room.id)}
+                          disabled={loading || room.isFull || !user}
+                        >
+                          {room.isFull ? "정원 초과" : "참여하기"}
+                        </Button>
                       </div>
-                    </div>
-                  </CardHeader>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-                  <CardContent>
-                    {room.description && (
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
-                        {room.description}
-                      </p>
-                    )}
+              {/* ✅ 페이지네이션 UI */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    이전
+                  </Button>
 
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs text-gray-500">
-                        방장: {room.creatorUsername}
-                      </div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        // 현재 페이지 기준 앞뒤 2페이지씩만 표시
+                        return (
+                          page === 1 ||
+                          page === totalPages ||
+                          Math.abs(page - currentPage) <= 2
+                        );
+                      })
+                      .map((page, idx, arr) => {
+                        // ... 표시 (페이지 건너뛰는 경우)
+                        if (idx > 0 && page - arr[idx - 1] > 1) {
+                          return (
+                            <React.Fragment key={`ellipsis-${page}`}>
+                              <span className="px-2 py-1 text-gray-400">
+                                ...
+                              </span>
+                              <Button
+                                variant={
+                                  currentPage === page ? "default" : "outline"
+                                }
+                                size="sm"
+                                onClick={() => handlePageChange(page)}
+                                disabled={loading}
+                              >
+                                {page}
+                              </Button>
+                            </React.Fragment>
+                          );
+                        }
+                        return (
+                          <Button
+                            key={page}
+                            variant={
+                              currentPage === page ? "default" : "outline"
+                            }
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            disabled={loading}
+                          >
+                            {page}
+                          </Button>
+                        );
+                      })}
+                  </div>
 
-                      <Button
-                        size="sm"
-                        onClick={() => handleJoinRoom(room.id)}
-                        disabled={loading || room.isFull || !user}
-                      >
-                        {room.isFull ? "정원 초과" : "참여하기"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages || loading}
+                  >
+                    다음
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -168,6 +168,17 @@ export interface OpenStudyRoom {
   createdBy?: string;
 }
 
+// ✅ 페이지네이션 응답 타입
+export interface PageResponse<T> {
+  content: T[];
+  currentPage: number;
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 // ✅ 그룹 스터디룸 타입 (백엔드 스키마 기준)
 export interface GroupStudyRoom {
   id: number;
@@ -231,18 +242,28 @@ export const authAPI = {
   getProfile: () => apiClient.get<User>("/api/profile"),
   logout: () => apiClient.post<{ message: string }>("/api/logout"),
 
-  updateProfile: (data: {
-    profileImage?: string;
-    studyField?: string;
-    bio?: string;
-    profileImageFile?: File;
-  }) => {
+  updateProfile: (
+    data:
+      | FormData
+      | {
+          profileImage?: string;
+          studyField?: string;
+          bio?: string;
+          profileImageFile?: File;
+        }
+  ) => {
+    // ✅ 이미 FormData면 그대로 사용
+    if (data instanceof FormData) {
+      return apiClient.put<User>("/api/update/profile", data);
+    }
+
+    // ✅ 객체면 FormData로 변환
     const formData = new FormData();
     if (data.profileImage) formData.append("profileImage", data.profileImage);
     if (data.studyField) formData.append("studyField", data.studyField);
     if (data.bio) formData.append("bio", data.bio);
     if (data.profileImageFile)
-      formData.append("profileImageFile", data.profileImageFile);
+      formData.append("profileImage", data.profileImageFile); // ✅ 필드명 통일
     return apiClient.put<User>("/api/update/profile", formData);
   },
 
@@ -262,12 +283,13 @@ export const groupAPI = {
   getMyGroups: () => apiClient.get<Group[]>("/api/groups/my"),
   getMyGroupsWithId: (leaderId: number) =>
     apiClient.get<Group[]>(`/api/groups/my?leaderId=${leaderId}`),
-  createGroup: (data: { groupName: string; leaderId: number }) =>
+  // ✅ leaderId는 JWT에서 자동 추출되므로 선택적
+  createGroup: (data: { groupName: string; leaderId?: number }) =>
     apiClient.post<Group>("/api/groups", data),
   getGroup: (groupId: number) => apiClient.get<Group>(`/api/groups/${groupId}`),
-  deleteGroup: (groupId: number, userId: number) =>
+  deleteGroup: (groupId: number, userId?: number) =>
     apiClient.delete<{ message: string }>(
-      `/api/groups/${groupId}?userId=${userId}`
+      `/api/groups/${groupId}${userId ? `?userId=${userId}` : ""}`
     ),
   getMembers: (groupId: number) =>
     apiClient.get<GroupMember[]>(`/api/groups/${groupId}/members`),
@@ -276,18 +298,26 @@ export const groupAPI = {
       groupId,
       memberId,
     }),
-  removeMember: (groupId: number, memberId: number, requesterId: number) =>
+  removeMember: (groupId: number, memberId: number, requesterId?: number) =>
     apiClient.delete<{ message: string }>(
-      `/api/groups/${groupId}/members/${memberId}?requesterId=${requesterId}`
+      `/api/groups/${groupId}/members/${memberId}${
+        requesterId ? `?requesterId=${requesterId}` : ""
+      }`
     ),
 };
 
 // 🧠 오픈 스터디 관련
 export const openStudyAPI = {
-  // ✅ GET /api/open-study/rooms - 필터링 지원
-  getRooms: (studyField?: string) => {
-    const params = studyField ? `?studyField=${studyField}` : "";
-    return apiClient.get<OpenStudyRoom[]>(`/api/open-study/rooms${params}`);
+  // ✅ GET /api/open-study/rooms - 필터링 및 페이지네이션 지원
+  getRooms: (studyField?: string, page: number = 1) => {
+    const params = new URLSearchParams();
+    if (studyField) params.append("studyField", studyField);
+    params.append("page", page.toString());
+
+    const queryString = params.toString();
+    return apiClient.get<PageResponse<OpenStudyRoom>>(
+      `/api/open-study/rooms${queryString ? `?${queryString}` : ""}`
+    );
   },
 
   // ✅ POST /api/open-study/rooms - 백엔드는 title 사용
@@ -325,30 +355,34 @@ export const studyRoomAPI = {
   // ✅ GET /api/study-rooms
   getAllRooms: () => apiClient.get<GroupStudyRoom[]>("/api/study-rooms"),
 
-  // ✅ POST /api/study-rooms - 백엔드 스키마에 맞게 수정
+  // ✅ POST /api/study-rooms - creatorId는 JWT에서 자동 추출
   createRoom: (data: {
     groupId: number;
     roomName: string;
     studyField: string;
     studyHours: number;
     maxMembers: number;
-    creatorId: number;
+    creatorId?: number;
   }) => apiClient.post<GroupStudyRoom>("/api/study-rooms", data),
 
   // ✅ GET /api/study-rooms/{roomId}
   getRoom: (roomId: string | number) =>
     apiClient.get<GroupStudyRoom>(`/api/study-rooms/${roomId}`),
 
-  // ✅ POST /api/study-rooms/{roomId}/join
-  joinRoom: (roomId: string | number, memberId: number) =>
+  // ✅ POST /api/study-rooms/{roomId}/join - memberId는 JWT에서 자동 추출
+  joinRoom: (roomId: string | number, memberId?: number) =>
     apiClient.post<{ message: string }>(
-      `/api/study-rooms/${roomId}/join?memberId=${memberId}`
+      `/api/study-rooms/${roomId}/join${
+        memberId ? `?memberId=${memberId}` : ""
+      }`
     ),
 
-  // ✅ POST /api/study-rooms/{roomId}/leave
-  leaveRoom: (roomId: string | number, memberId: number) =>
+  // ✅ POST /api/study-rooms/{roomId}/leave - memberId는 JWT에서 자동 추출
+  leaveRoom: (roomId: string | number, memberId?: number) =>
     apiClient.post<{ message: string }>(
-      `/api/study-rooms/${roomId}/leave?memberId=${memberId}`
+      `/api/study-rooms/${roomId}/leave${
+        memberId ? `?memberId=${memberId}` : ""
+      }`
     ),
 
   // ✅ POST /api/study-rooms/{roomId}/end
@@ -359,10 +393,10 @@ export const studyRoomAPI = {
   getGroupRooms: (groupId: string | number) =>
     apiClient.get<GroupStudyRoom[]>(`/api/study-rooms/group/${groupId}`),
 
-  // ✅ DELETE /api/study-rooms/{roomId}
-  deleteRoom: (roomId: string | number, memberId: number) =>
+  // ✅ DELETE /api/study-rooms/{roomId} - memberId는 JWT에서 자동 추출
+  deleteRoom: (roomId: string | number, memberId?: number) =>
     apiClient.delete<{ message: string }>(
-      `/api/study-rooms/${roomId}?memberId=${memberId}`
+      `/api/study-rooms/${roomId}${memberId ? `?memberId=${memberId}` : ""}`
     ),
 };
 

@@ -214,19 +214,29 @@ const OpenStudyRoomPage: React.FC = () => {
           return;
         }
 
-        try {
-          await openStudyAPI.joinRoom(roomId);
-          console.log("Successfully joined room via API");
-        } catch (joinError: any) {
-          if (
-            joinError?.message?.includes("이미") ||
-            joinError?.message?.includes("already") ||
-            joinError?.message?.includes("409")
-          ) {
-            console.log("Already in room, continuing...");
-          } else {
-            throw joinError;
+        // ✅ 방 생성자인지 확인
+        const isCreator =
+          roomData.creatorUsername === user.username ||
+          (roomData.createdBy && roomData.createdBy === user.id);
+
+        // ✅ 생성자가 아닐 때만 joinRoom 호출
+        if (!isCreator) {
+          try {
+            await openStudyAPI.joinRoom(roomId);
+            console.log("Successfully joined room via API");
+          } catch (joinError: any) {
+            if (
+              joinError?.message?.includes("이미") ||
+              joinError?.message?.includes("already") ||
+              joinError?.message?.includes("409")
+            ) {
+              console.log("Already in room, continuing...");
+            } else {
+              throw joinError;
+            }
           }
+        } else {
+          console.log("Room creator, skipping joinRoom call");
         }
 
         localStorage.setItem("currentOpenStudyRoom", roomId);
@@ -332,14 +342,22 @@ const OpenStudyRoomPage: React.FC = () => {
       console.error("Failed to delete room:", error);
       localStorage.removeItem("currentOpenStudyRoom");
       hasJoinedRef.current = false;
-      toast({
-        title: "오류",
-        description: error?.message || "방 삭제에 실패했습니다.",
-        variant: "destructive",
-      });
+
+      // ✅ 500 에러 발생해도 방 나가기는 성공으로 처리
+      if (error?.message?.includes("500")) {
+        toast({
+          title: "방 나가기 완료",
+          description: "스터디룸에서 나왔습니다.",
+        });
+      } else {
+        toast({
+          title: "오류",
+          description: error?.message || "방 삭제에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
     }
   };
-
   const handleStatusToggle = (newStatus: "studying" | "resting") => {
     if (myStatus === newStatus) return;
 
@@ -602,15 +620,16 @@ const OpenStudyRoomPage: React.FC = () => {
         setExitDialogOpen(false);
         return;
       }
-
-      await deleteRoom();
-    } else {
-      await leaveRoom();
-      toast({
-        title: "방 나가기 완료",
-        description: "스터디룸에서 나왔습니다.",
-      });
     }
+
+    // ✅ 방장이든 아니든 leaveRoom 호출 (백엔드에서 방장이면 방 자동 삭제)
+    await leaveRoom();
+    toast({
+      title: isCreator ? "방 삭제 완료" : "방 나가기 완료",
+      description: isCreator
+        ? "스터디 방이 삭제되었습니다."
+        : "스터디룸에서 나왔습니다.",
+    });
 
     setExitDialogOpen(false);
     navigate("/open-study");
