@@ -4,6 +4,7 @@ import com.team.LetsStudyNow_rg.domain.groupstudy.domain.Group;
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.StudyRoom;
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.StudyRoomParticipant;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateStudyRoomRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomParticipantResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupMemberRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupRepository;
@@ -218,5 +219,16 @@ public class StudyRoomService {
         // 3. 참여자 삭제 후 방 삭제
         participantRepository.deleteByStudyRoomId(roomId);
         studyRoomRepository.delete(room);
+    }
+
+    // 스터디방 참여자 목록 조회
+    public List<StudyRoomParticipantResponse> getRoomParticipants(Long roomId) {
+        // 스터디방 존재 여부 확인
+        studyRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디 방을 찾을 수 없습니다"));
+
+        return participantRepository.findByStudyRoomId(roomId).stream()
+                .map(StudyRoomParticipantResponse::new)
+                .collect(Collectors.toList());
     }
 }

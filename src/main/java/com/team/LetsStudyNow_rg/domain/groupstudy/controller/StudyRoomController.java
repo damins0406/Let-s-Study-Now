@@ -1,6 +1,7 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.controller;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateStudyRoomRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomParticipantResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.service.StudyRoomService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -91,5 +92,13 @@ public class StudyRoomController {
             @RequestParam Long memberId) {
         studyRoomService.deleteRoom(roomId, memberId);
         return ResponseEntity.noContent().build();
+    }
+
+    // 스터디방 참여자 목록 조회
+    @Operation(summary = "스터디방 참여자 목록", description = "스터디방의 참여자 목록을 조회합니다")
+    @GetMapping("/{roomId}/participants")
+    public ResponseEntity<List<StudyRoomParticipantResponse>> getRoomParticipants(@PathVariable Long roomId) {
+        List<StudyRoomParticipantResponse> responses = studyRoomService.getRoomParticipants(roomId);
+        return ResponseEntity.ok(responses);
     }
 }

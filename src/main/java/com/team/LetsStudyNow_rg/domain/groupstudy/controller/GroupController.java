@@ -1,6 +1,7 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.controller;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupMemberResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.service.GroupService;
 import com.team.LetsStudyNow_rg.global.auth.CustomUser;
@@ -69,5 +70,13 @@ public class GroupController {
         Long userId = customUser.id;
         groupService.deleteGroup(groupId, userId);
         return ResponseEntity.noContent().build();
+    }
+
+    // 그룹 참여자 목록 조회
+    @Operation(summary = "그룹 참여자 목록", description = "그룹의 참여자 목록을 조회합니다")
+    @GetMapping("/{groupId}/members")
+    public ResponseEntity<List<GroupMemberResponse>> getGroupMembers(@PathVariable Long groupId) {
+        List<GroupMemberResponse> responses = groupService.getGroupMembers(groupId);
+        return ResponseEntity.ok(responses);
     }
 }
