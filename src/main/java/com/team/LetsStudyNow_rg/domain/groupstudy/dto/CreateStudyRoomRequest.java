@@ -7,7 +7,6 @@ public class CreateStudyRoomRequest {
     private String studyField;    // 공부 분야
     private Integer studyHours;   // 공부 시간 (1~5)
     private Integer maxMembers;   // 최대 인원 (2~10)
-    private Long creatorId;       // 방 생성자 ID
 
     // 기본 생성자
     public CreateStudyRoomRequest() {
@@ -15,13 +14,12 @@ public class CreateStudyRoomRequest {
 
     // 생성자
     public CreateStudyRoomRequest(Long groupId, String roomName, String studyField,
-                                  Integer studyHours, Integer maxMembers, Long creatorId) {
+                                  Integer studyHours, Integer maxMembers) {
         this.groupId = groupId;
         this.roomName = roomName;
         this.studyField = studyField;
         this.studyHours = studyHours;
         this.maxMembers = maxMembers;
-        this.creatorId = creatorId;
     }
 
     // Getter
@@ -45,10 +43,6 @@ public class CreateStudyRoomRequest {
         return maxMembers;
     }
 
-    public Long getCreatorId() {
-        return creatorId;
-    }
-
     // Setter
     public void setGroupId(Long groupId) {
         this.groupId = groupId;
@@ -68,9 +62,5 @@ public class CreateStudyRoomRequest {
 
     public void setMaxMembers(Integer maxMembers) {
         this.maxMembers = maxMembers;
-    }
-
-    public void setCreatorId(Long creatorId) {
-        this.creatorId = creatorId;
     }
 }

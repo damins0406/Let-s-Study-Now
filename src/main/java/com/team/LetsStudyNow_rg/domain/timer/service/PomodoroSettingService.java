@@ -16,9 +16,9 @@ public class PomodoroSettingService {
     private final PomodoroSettingRepository pomodoroSettingRepository;
 
     /**
-     * 1.3.3: 뽀모도로 설정 저장
+     * 뽀모도로 설정 저장
      * - 첫 설정 시 새로 생성
-     * - 1.3.6, 1.3.7: 이미 설정이 있으면 업데이트
+     * - 이미 설정이 있으면 업데이트
      */
     @Transactional
     public PomodoroSettingResponse saveSetting(Long memberId, PomodoroSettingRequest request) {
@@ -35,14 +35,14 @@ public class PomodoroSettingService {
     }
 
     /**
-     * 1.3.4, 1.3.5: 뽀모도로 설정 조회
+     * 뽀모도로 설정 조회
      * - 이전 설정 유지
      */
     public PomodoroSettingResponse getSetting(Long memberId) {
         PomodoroSetting setting = pomodoroSettingRepository.findByMemberId(memberId)
                 .orElse(null);
 
-        // 1.3.1: 첫 사용 시 설정이 비어있음
+        // 첫 사용 시 설정이 비어있음
         if (setting == null) {
             return null;
         }
@@ -51,7 +51,7 @@ public class PomodoroSettingService {
     }
 
     /**
-     * 1.3.2: 뽀모도로 설정 존재 여부 확인
+     * 뽀모도로 설정 존재 여부 확인
      */
     public boolean hasSettings(Long memberId) {
         return pomodoroSettingRepository.existsByMemberId(memberId);

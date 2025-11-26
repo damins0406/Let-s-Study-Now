@@ -1,6 +1,7 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.service;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.Group;
+import com.team.LetsStudyNow_rg.domain.groupstudy.domain.GroupMember;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupMemberResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
@@ -28,20 +29,24 @@ public class GroupService {
 
     // 그룹 생성
     @Transactional
-    public GroupResponse createGroup(CreateGroupRequest request) {
+    public GroupResponse createGroup(String groupName, Long leaderId) {
         // 1. 그룹 이름 입력 (SRS 6.2.2)
-        if (request.getGroupName() == null || request.getGroupName().trim().isEmpty()) {
+        if (groupName == null || groupName.trim().isEmpty()) {
             throw new IllegalArgumentException("그룹 이름을 입력해주세요");
         }
 
         // 2. 그룹 생성
-        Group group = new Group(request.getGroupName(), request.getLeaderId());
+        Group group = new Group(groupName, leaderId);
 
         // 3. 저장
         Group savedGroup = groupRepository.save(group);
 
-        // 4. 응답 반환 (생성 직후에는 참여자 수 0)
-        return new GroupResponse(savedGroup, 0L);
+        // 4. 그룹 생성자를 자동으로 그룹 멤버로 추가
+        GroupMember leaderMember = new GroupMember(savedGroup.getId(), leaderId, "LEADER");
+        groupMemberRepository.save(leaderMember);
+
+        // 5. 응답 반환 (생성 직후에는 참여자 수 1 - 생성자)
+        return new GroupResponse(savedGroup, 1L);
     }
 
     // 그룹 조회 (참여자 수 포함)
@@ -93,16 +98,5 @@ public class GroupService {
 
         // 삭제
         groupRepository.deleteById(groupId);
-    }
-
-    // 그룹 참여자 목록 조회
-    public List<GroupMemberResponse> getGroupMembers(Long groupId) {
-        // 그룹 존재 여부 확인
-        groupRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다"));
-
-        return groupMemberRepository.findByGroupId(groupId).stream()
-                .map(GroupMemberResponse::new)
-                .collect(Collectors.toList());
     }
 }

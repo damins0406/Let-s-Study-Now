@@ -71,12 +71,4 @@ public class GroupController {
         groupService.deleteGroup(groupId, userId);
         return ResponseEntity.noContent().build();
     }
-
-    // 그룹 참여자 목록 조회
-    @Operation(summary = "그룹 참여자 목록", description = "그룹의 참여자 목록을 조회합니다")
-    @GetMapping("/{groupId}/members")
-    public ResponseEntity<List<GroupMemberResponse>> getGroupMembers(@PathVariable Long groupId) {
-        List<GroupMemberResponse> responses = groupService.getGroupMembers(groupId);
-        return ResponseEntity.ok(responses);
-    }
 }
