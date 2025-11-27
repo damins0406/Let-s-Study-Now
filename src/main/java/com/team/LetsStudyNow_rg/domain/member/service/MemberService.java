@@ -41,7 +41,7 @@ public class MemberService {
 
     // 로그인 로직
     @Transactional
-    public void loginService(LoginDto req, HttpServletResponse response) {
+    public String loginService(LoginDto req, HttpServletResponse response) {
         var authToken = new UsernamePasswordAuthenticationToken(req.email(), req.password());
         var auth = authenticationManagerBuilder.getObject().authenticate(authToken);
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -57,6 +57,7 @@ public class MemberService {
                 .build();
 
         response.addHeader("Set-Cookie", cookie.toString());
+        return jwt;
     }
 
     // 회원가입 로직
