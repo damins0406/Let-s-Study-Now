@@ -1,6 +1,9 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.service;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.Group;
+import com.team.LetsStudyNow_rg.domain.groupstudy.domain.GroupMember;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupMemberResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupMemberRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupRepository;
@@ -38,30 +41,41 @@ public class GroupService {
         // 3. 저장
         Group savedGroup = groupRepository.save(group);
 
-        // 4. 응답 반환
-        return new GroupResponse(savedGroup);
+        // 4. 그룹 생성자를 자동으로 그룹 멤버로 추가
+        GroupMember leaderMember = new GroupMember(savedGroup.getId(), leaderId, "LEADER");
+        groupMemberRepository.save(leaderMember);
+
+        // 5. 응답 반환 (생성 직후에는 참여자 수 1 - 생성자)
+        return new GroupResponse(savedGroup, 1L);
     }
 
-    // 그룹 조회
+    // 그룹 조회 (참여자 수 포함)
     public GroupResponse getGroup(Long groupId) {
         Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다"));
-        return new GroupResponse(group);
+        Long memberCount = groupMemberRepository.countByGroupId(groupId);
+        return new GroupResponse(group, memberCount);
     }
 
-    // 내가 만든 그룹 목록
+    // 내가 만든 그룹 목록 (참여자 수 포함)
     public List<GroupResponse> getMyGroups(Long leaderId) {
         List<Group> groups = groupRepository.findByLeaderId(leaderId);
         return groups.stream()
-                .map(GroupResponse::new)  // Group → GroupResponse 변환
+                .map(group -> {
+                    Long memberCount = groupMemberRepository.countByGroupId(group.getId());
+                    return new GroupResponse(group, memberCount);
+                })
                 .collect(Collectors.toList());
     }
 
-    // 전체 그룹 목록
+    // 전체 그룹 목록 (참여자 수 포함)
     public List<GroupResponse> getAllGroups() {
         List<Group> groups = groupRepository.findAll();
         return groups.stream()
-                .map(GroupResponse::new)
+                .map(group -> {
+                    Long memberCount = groupMemberRepository.countByGroupId(group.getId());
+                    return new GroupResponse(group, memberCount);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -85,4 +99,4 @@ public class GroupService {
         // 삭제
         groupRepository.deleteById(groupId);
     }
-    }
+}

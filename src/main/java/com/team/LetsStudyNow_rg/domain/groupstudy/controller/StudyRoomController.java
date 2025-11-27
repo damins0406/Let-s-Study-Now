@@ -1,12 +1,15 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.controller;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateStudyRoomRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomParticipantResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.service.StudyRoomService;
+import com.team.LetsStudyNow_rg.global.auth.CustomUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,8 +29,11 @@ public class StudyRoomController {
     // 스터디방 생성 (SRS 6.1.1~6.1.8)
     @Operation(summary = "스터디방 생성", description = "새로운 스터디방을 생성합니다")
     @PostMapping
-    public ResponseEntity<StudyRoomResponse> createRoom(@RequestBody CreateStudyRoomRequest request) {
-        StudyRoomResponse response = studyRoomService.createRoom(request);
+    public ResponseEntity<StudyRoomResponse> createRoom(
+            @RequestBody CreateStudyRoomRequest request,
+            @AuthenticationPrincipal CustomUser customUser) {
+        Long creatorId = customUser.id;
+        StudyRoomResponse response = studyRoomService.createRoom(request, creatorId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -91,5 +97,13 @@ public class StudyRoomController {
             @RequestParam Long memberId) {
         studyRoomService.deleteRoom(roomId, memberId);
         return ResponseEntity.noContent().build();
+    }
+
+    // 스터디방 참여자 목록 조회
+    @Operation(summary = "스터디방 참여자 목록", description = "스터디방의 참여자 목록을 조회합니다")
+    @GetMapping("/{roomId}/participants")
+    public ResponseEntity<List<StudyRoomParticipantResponse>> getRoomParticipants(@PathVariable Long roomId) {
+        List<StudyRoomParticipantResponse> responses = studyRoomService.getRoomParticipants(roomId);
+        return ResponseEntity.ok(responses);
     }
 }

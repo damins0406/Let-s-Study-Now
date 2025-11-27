@@ -1,6 +1,7 @@
 package com.team.LetsStudyNow_rg.domain.groupstudy.controller;
 
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateGroupRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupMemberResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.GroupResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.service.GroupService;
 import com.team.LetsStudyNow_rg.global.auth.CustomUser;

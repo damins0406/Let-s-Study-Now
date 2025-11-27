@@ -4,6 +4,7 @@ import com.team.LetsStudyNow_rg.domain.groupstudy.domain.Group;
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.StudyRoom;
 import com.team.LetsStudyNow_rg.domain.groupstudy.domain.StudyRoomParticipant;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.CreateStudyRoomRequest;
+import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomParticipantResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.dto.StudyRoomResponse;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupMemberRepository;
 import com.team.LetsStudyNow_rg.domain.groupstudy.repository.GroupRepository;
@@ -37,13 +38,13 @@ public class StudyRoomService {
 
     // 스터디방 생성 (SRS 6.1.1~6.1.8)
     @Transactional
-    public StudyRoomResponse createRoom(CreateStudyRoomRequest request) {
+    public StudyRoomResponse createRoom(CreateStudyRoomRequest request, Long creatorId) {
         // 1. 그룹 존재 확인
         Group group = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다"));
 
         // 2. 방 생성자가 그룹 멤버인지 확인 (SRS 6.1.6)
-        groupMemberRepository.findByGroupIdAndMemberId(request.getGroupId(), request.getCreatorId())
+        groupMemberRepository.findByGroupIdAndMemberId(request.getGroupId(), creatorId)
                 .orElseThrow(() -> new IllegalArgumentException("그룹 멤버만 스터디 방을 생성할 수 있습니다"));
 
         // 3. 방 이름 검증 (SRS 6.1.5)
@@ -73,14 +74,14 @@ public class StudyRoomService {
                 request.getStudyField(),
                 request.getStudyHours(),
                 request.getMaxMembers(),
-                request.getCreatorId()
+                creatorId
         );
         StudyRoom savedRoom = studyRoomRepository.save(studyRoom);
 
         // 8. 방 생성자는 자동 입장 (SRS 6.1.8)
         StudyRoomParticipant participant = new StudyRoomParticipant(
                 savedRoom.getId(),
-                request.getCreatorId()
+                creatorId
         );
         participantRepository.save(participant);
 
@@ -218,5 +219,16 @@ public class StudyRoomService {
         // 3. 참여자 삭제 후 방 삭제
         participantRepository.deleteByStudyRoomId(roomId);
         studyRoomRepository.delete(room);
+    }
+
+    // 스터디방 참여자 목록 조회
+    public List<StudyRoomParticipantResponse> getRoomParticipants(Long roomId) {
+        // 스터디방 존재 여부 확인
+        studyRoomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("스터디 방을 찾을 수 없습니다"));
+
+        return participantRepository.findByStudyRoomId(roomId).stream()
+                .map(StudyRoomParticipantResponse::new)
+                .collect(Collectors.toList());
     }
 }
