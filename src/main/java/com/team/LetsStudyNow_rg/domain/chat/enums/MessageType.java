@@ -4,6 +4,11 @@ public enum MessageType {
     ENTER,
     TALK,
     LEAVE,
-    IMAGE
+    IMAGE,
+
+    // 질문 관련 타입
+    QUESTION,
+    ANSWER,
+    SOLVE
 
 }

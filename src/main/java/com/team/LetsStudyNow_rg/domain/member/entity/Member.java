@@ -37,6 +37,9 @@ public class Member {
     @Column(nullable = false)
     private Integer totalExp = 0; // 누적 경험치
 
+    @Column(nullable = false)
+    private Integer adoptionCount = 0; // 답변 채택 횟수
+
     @Builder
     public Member(String email, String username, String password, Role role, String studyField, String bio, String profileImage) {
         this.email = email;
@@ -48,6 +51,11 @@ public class Member {
         this.profileImage = profileImage;
         this.level = 1;
         this.totalExp = 0;
+        this.adoptionCount = 0;
+    }
+
+    public void increaseAdoptionCount() {
+        this.adoptionCount++;
     }
 }
 

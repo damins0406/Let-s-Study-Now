@@ -41,8 +41,8 @@ public class MemberController {
             @Valid @RequestBody LoginDto req,
             HttpServletResponse response
     ) {
-        memberService.loginService(req, response);
-        return ResponseEntity.status(HttpStatus.CREATED).body("로그인 성공");
+        String token = memberService.loginService(req, response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(token);
     }
 
     // 회원가입 api
