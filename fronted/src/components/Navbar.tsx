@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,14 @@ import { User, LogOut, Settings } from 'lucide-react';
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // 레벨 계산 (경험치 기반)
+  const calculateLevel = (exp: number = 0) => {
+    return Math.floor(exp / 100) + 1;
+  };
+
+  // 사용자 레벨 가져오기
+  const userLevel = user?.level || (user?.exp !== undefined ? calculateLevel(user.exp) : 1);
 
   const handleLogout = () => {
     logout();
@@ -90,9 +99,17 @@ const Navbar: React.FC = () => {
                         <User className="w-4 h-4 text-gray-600" />
                       )}
                     </div>
-                    <span className="hidden sm:block text-sm font-medium">
-                      {user.username}
-                    </span>
+                    <div className="hidden sm:flex items-center gap-2">
+                      <span className="text-base font-medium">
+                        {user.username}
+                      </span>
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-gradient-to-r from-indigo-500 to-sky-400 text-white border-0 text-sm font-semibold px-3 py-1"
+                      >
+                        Lv.{userLevel}
+                      </Badge>
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">

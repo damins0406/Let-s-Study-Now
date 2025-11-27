@@ -21,7 +21,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { openStudyAPI, OpenStudyRoom, timerAPI, TimerStatusResponse } from "@/lib/api";
+import { 
+  openStudyAPI, 
+  OpenStudyRoom, 
+  sessionAPI, 
+  SessionStartRequestDto,
+  SessionEndResultDto,
+  LevelInfoDto
+} from "@/lib/api";
 import {
   Users,
   Clock,
@@ -100,10 +107,14 @@ const OpenStudyRoomPage: React.FC = () => {
   // My Status
   const [myStatus, setMyStatus] = useState<"studying" | "resting">("studying");
 
-  // Timer - 백엔드 연동
-  const [timerStatus, setTimerStatus] = useState<TimerStatusResponse | null>(null);
+  // Session - 백엔드 연동
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [isSessionActive, setIsSessionActive] = useState(false);
   const [currentSeconds, setCurrentSeconds] = useState(0);
   const intervalRef = useRef<any>(null);
+  
+  // Level Info
+  const [levelInfo, setLevelInfo] = useState<LevelInfoDto | null>(null);
 
   // Today's Stats
   const [todayStats, setTodayStats] = useState({
@@ -160,6 +171,22 @@ const OpenStudyRoomPage: React.FC = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 레벨 정보 조회
+  useEffect(() => {
+    const fetchLevelInfo = async () => {
+      try {
+        const info = await sessionAPI.getLevelInfo();
+        setLevelInfo(info);
+      } catch (error) {
+        console.error("Failed to fetch level info:", error);
+      }
+    };
+
+    if (user) {
+      fetchLevelInfo();
+    }
+  }, [user]);
 
   // 타이머 실시간 UI 업데이트 - myStatus에 따라 작동
   useEffect(() => {
@@ -245,31 +272,34 @@ const OpenStudyRoomPage: React.FC = () => {
           console.log("Room creator, skipping joinRoom call");
         }
 
-        // ✅ 타이머 시작 연동
+        // ✅ 스터디 세션 시작 연동
         try {
           const roomIdNum = parseInt(roomId, 10);
           if (!isNaN(roomIdNum)) {
-            console.log("Calling timerAPI.startTimer with:", { roomId: roomIdNum, isRoomCreator: isCreator });
-            const timerResponse = await timerAPI.startTimer(roomIdNum, isCreator);
-            console.log("Timer API response:", timerResponse);
-            console.log("Timer status value:", timerResponse.timerStatus);
+            console.log("Calling sessionAPI.startSession with:", { studyType: 'OPEN_STUDY', roomId: roomIdNum });
+            const sessionResponse = await sessionAPI.startSession({
+              studyType: 'OPEN_STUDY',
+              roomId: roomIdNum
+            });
+            console.log("Session API response:", sessionResponse);
             
-            setTimerStatus(timerResponse);
-            setCurrentSeconds(timerResponse.currentSessionSeconds);
-            console.log("Timer state updated:", {
-              timerStatus: timerResponse.timerStatus,
-              currentSessionSeconds: timerResponse.currentSessionSeconds
+            setSessionId(sessionResponse.sessionId);
+            setIsSessionActive(true);
+            setCurrentSeconds(0);
+            console.log("Session state updated:", {
+              sessionId: sessionResponse.sessionId,
+              isSessionActive: true
             });
           } else {
             console.error("Invalid roomId:", roomId);
           }
-        } catch (timerError: any) {
-          console.error("Failed to start timer:", timerError);
-          console.error("Timer error details:", {
-            message: timerError?.message,
-            stack: timerError?.stack
+        } catch (sessionError: any) {
+          console.error("Failed to start session:", sessionError);
+          console.error("Session error details:", {
+            message: sessionError?.message,
+            stack: sessionError?.stack
           });
-          // 타이머 시작 실패해도 방 입장은 계속 진행
+          // 세션 시작 실패해도 방 입장은 계속 진행
         }
 
         localStorage.setItem("currentOpenStudyRoom", roomId);
@@ -655,21 +685,32 @@ const OpenStudyRoomPage: React.FC = () => {
       }
     }
 
-    // ✅ 타이머 종료 연동
-    try {
-      await timerAPI.endTimer();
-      console.log("Timer ended successfully");
-      
-      // setInterval 정리 및 currentSeconds 초기화
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
+    // ✅ 스터디 세션 종료 연동
+    if (sessionId !== null) {
+      try {
+        const endResult = await sessionAPI.endSession(sessionId);
+        console.log("Session ended successfully:", endResult);
+        
+        // 레벨업 확인 및 축하 메시지
+        if (endResult.leveledUp && endResult.newLevel !== null) {
+          toast({
+            title: "🎉 레벨업!",
+            description: `축하합니다! 레벨 ${endResult.newLevel}이 되었습니다!`,
+          });
+        }
+        
+        // setInterval 정리 및 currentSeconds 초기화
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setCurrentSeconds(0);
+        setSessionId(null);
+        setIsSessionActive(false);
+      } catch (sessionError: any) {
+        console.error("Failed to end session:", sessionError);
+        // 세션 종료 실패해도 방 나가기는 계속 진행
       }
-      setCurrentSeconds(0);
-      setTimerStatus(null);
-    } catch (timerError: any) {
-      console.error("Failed to end timer:", timerError);
-      // 타이머 종료 실패해도 방 나가기는 계속 진행
     }
 
     // ✅ 방장이든 아니든 leaveRoom 호출 (백엔드에서 방장이면 방 자동 삭제)
@@ -877,6 +918,17 @@ const OpenStudyRoomPage: React.FC = () => {
               </div>
 
               <div className="ml-auto flex items-center gap-4 text-sm text-gray-600">
+                {/* 레벨 정보 표시 */}
+                {levelInfo && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-sky-50 rounded-lg border border-indigo-200">
+                    <span className="font-semibold text-indigo-700">
+                      레벨 {levelInfo.level}
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      ({Math.round((levelInfo.currentLevelExp / levelInfo.expForNextLevel) * 100)}%)
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1">
                   <TrendingUp className="w-4 h-4 text-green-500" />
                   <span>총 {formatTime(todayStats.totalStudyTime)}</span>

@@ -243,6 +243,26 @@ export interface TimerStatusResponse {
   totalStudyTime: string;
 }
 
+// ✅ 스터디 세션 관련 타입
+export interface SessionStartRequestDto {
+  studyType: string;
+  roomId: number;
+}
+
+export interface SessionEndResultDto {
+  sessionId: number;
+  studyMinutes: number;
+  leveledUp: boolean;
+  newLevel: number | null;
+}
+
+export interface LevelInfoDto {
+  level: number;
+  exp: number;
+  currentLevelExp: number;
+  expForNextLevel: number;
+}
+
 //
 // ✅ API 함수들
 //
@@ -457,4 +477,20 @@ export const timerAPI = {
 
   // GET /api/timer/status - 타이머 상태 조회
   getTimerStatus: () => apiClient.get<TimerStatusResponse>("/api/timer/status"),
+};
+
+// 📊 스터디 세션 관련
+export const sessionAPI = {
+  // POST /api/study-sessions/start - 스터디 세션 시작
+  startSession: (request: SessionStartRequestDto) =>
+    apiClient.post<{ sessionId: number }>("/api/study-sessions/start", request),
+
+  // POST /api/study-sessions/{sessionId}/end - 스터디 세션 종료
+  endSession: (sessionId: number) =>
+    apiClient.post<SessionEndResultDto>(
+      `/api/study-sessions/${sessionId}/end`
+    ),
+
+  // GET /api/study-sessions/level - 레벨 정보 조회
+  getLevelInfo: () => apiClient.get<LevelInfoDto>("/api/study-sessions/level"),
 };
