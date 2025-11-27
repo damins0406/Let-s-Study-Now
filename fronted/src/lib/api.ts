@@ -39,14 +39,28 @@ class ApiClient {
         // ✅ 서버에서 보낸 에러 메시지 파싱
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
-          const errorData = await response.json();
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
+          const contentType = response.headers.get("content-type");
+
+          // JSON 응답 시도
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } else {
+            // ✅ 텍스트 응답 시도 (백엔드가 plain text로 보낼 수 있음)
+            const textError = await response.text();
+            if (textError && textError.trim()) {
+              errorMessage = textError.trim();
+            }
           }
+
+          console.log(`[API Error ${response.status}] Original:`, errorMessage);
         } catch (e) {
-          // JSON 파싱 실패 시 기본 메시지 사용
+          console.error("에러 메시지 파싱 실패:", e);
+          // JSON/Text 파싱 실패 시 기본 메시지 사용
         }
 
         // 인증 실패 시 로그인 페이지로 리다이렉트
@@ -200,12 +214,22 @@ export interface Group {
   groupName: string;
   leaderId: number;
   createdAt: string;
+  memberCount?: number; // ✅ 그룹 참여자 수
 }
 
 export interface GroupMember {
   id: number;
   memberId: number;
   role: string;
+  joinedAt: string;
+}
+
+// ✅ 스터디룸 참여자 타입
+export interface StudyRoomParticipant {
+  memberId: number;
+  username: string;
+  profileImageUrl?: string;
+  timerStatus: "STUDYING" | "RESTING";
   joinedAt: string;
 }
 
@@ -219,18 +243,35 @@ export interface Checklist {
 }
 
 // ✅ 타이머 관련 타입
-export type TimerMode = "STUDY" | "REST";
-export type TimerStatus = "RUNNING" | "PAUSED" | "STOPPED";
+export type TimerMode = "BASIC" | "POMODORO";
+export type TimerStatus = "STUDYING" | "RESTING";
 
 export interface TimerStatusResponse {
-  timerId: number;
-  memberId: number;
-  roomId: number;
-  timerMode: TimerMode;
-  timerStatus: TimerStatus;
-  currentSessionSeconds: number;
+  isRunning: boolean;
+  mode: TimerMode;
+  status: TimerStatus;
+  elapsedSeconds: number;
+  studySeconds: number;
+  restSeconds: number;
+  formattedElapsedTime: string;
+  pomodoroSetting?: PomodoroSettingResponse;
+}
+
+export interface PomodoroSettingResponse {
+  studyMinutes: number;
+  restMinutes: number;
+}
+
+export interface PomodoroSettingRequest {
+  studyMinutes: number;
+  restMinutes: number;
+}
+
+export interface StudyTimeResponse {
   totalStudySeconds: number;
-  totalStudyTime: string;
+  todayStudySeconds: number;
+  formattedTotalTime: string;
+  formattedTodayTime: string;
 }
 
 //
@@ -257,30 +298,19 @@ export const authAPI = {
   getProfile: () => apiClient.get<User>("/api/profile"),
   logout: () => apiClient.post<{ message: string }>("/api/logout"),
 
-  // ✅ PATCH /api/update/profile
-  // Request: FormData with "data" (JSON string) and "image" (binary)
   updateProfile: (data: FormData) => {
+    // ✅ PATCH 메서드 사용, FormData 직접 전송
     return apiClient.patch<User>("/api/update/profile", data);
   },
 
-  // ✅ PATCH /api/update/password
-  // Request: JSON { currentPassword, newPassword, newPasswordCheck }
-  // Response: 200 - string, 400 - string
   updatePassword: (data: {
     currentPassword: string;
     newPassword: string;
     newPasswordCheck: string;
-  }) => apiClient.patch<string>("/api/update/password", data),
+  }) => apiClient.patch<{ message: string }>("/api/update/password", data),
 
-  // ✅ DELETE /api/delete/account
-  // Request: JSON { password }
-  // Response: 200 - string, 400 - string
-  deleteAccount: (password: string) => {
-    const formData = new FormData();
-    formData.append("password", password);
-    console.log("=== DELETE /api/delete/account (FormData) ===");
-    return apiClient.delete<string>("/api/delete/account", formData);
-  },
+  deleteAccount: (password: string) =>
+    apiClient.post<{ message: string }>("/api/delete/account", { password }),
 };
 
 // 👥 그룹 관련
@@ -398,6 +428,12 @@ export const studyRoomAPI = {
   // ✅ GET /api/study-rooms/group/{groupId}
   getGroupRooms: (groupId: string | number) =>
     apiClient.get<GroupStudyRoom[]>(`/api/study-rooms/group/${groupId}`),
+
+  // ✅ GET /api/study-rooms/{roomId}/participants - 참여자 목록 조회
+  getParticipants: (roomId: string | number) =>
+    apiClient.get<StudyRoomParticipant[]>(
+      `/api/study-rooms/${roomId}/participants`
+    ),
 
   // ✅ DELETE /api/study-rooms/{roomId} - memberId는 JWT에서 자동 추출
   deleteRoom: (roomId: string | number, memberId?: number) =>

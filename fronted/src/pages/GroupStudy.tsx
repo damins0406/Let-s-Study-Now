@@ -25,7 +25,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   groupAPI,
   studyRoomAPI,
-  authAPI,
+  authAPI, // ✅ 추가
   Group,
   GroupStudyRoom,
 } from "@/lib/api";
@@ -72,59 +72,37 @@ const GroupStudy: React.FC = () => {
     }
   }, [user]);
 
+  // ✅ JWT 기반 그룹 로드
   const loadMyGroups = async () => {
     if (!user) return;
 
     setLoading(true);
     try {
-      // ✅ 먼저 세션 기반으로 시도
-      try {
-        const groups = await groupAPI.getMyGroups();
-        setMyGroups(groups);
+      const groups = await groupAPI.getMyGroups();
+      setMyGroups(groups);
 
-        // 각 그룹의 방 목록 로드
-        for (const group of groups) {
-          await loadGroupRooms(group.id);
-        }
-
-        console.log("Successfully loaded groups using session");
-      } catch (sessionError: any) {
-        console.error("Session-based failed:", sessionError);
-
-        // ✅ Fallback: Profile API에서 사용자 정보 다시 가져오기
-        try {
-          const profile = await authAPI.getProfile();
-          console.log("Profile data:", profile);
-
-          // Profile에서 leaderId를 찾을 수 있는지 확인
-          // 보통 백엔드가 email이나 username으로 leaderId를 찾을 수 있음
-          toast({
-            title: "안내",
-            description: "세션이 만료되었습니다. 다시 로그인해주세요.",
-            variant: "destructive",
-          });
-
-          // 로그인 페이지로 리다이렉트
-          setTimeout(() => {
-            window.location.href = "#/login";
-          }, 2000);
-        } catch (profileError) {
-          console.error("Profile fetch failed:", profileError);
-          toast({
-            title: "오류",
-            description:
-              "사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.",
-            variant: "destructive",
-          });
-        }
+      for (const group of groups) {
+        await loadGroupRooms(group.id);
       }
     } catch (error: any) {
       console.error("그룹 로드 에러:", error);
-      toast({
-        title: "오류",
-        description: error?.message || "그룹 목록을 불러오는데 실패했습니다.",
-        variant: "destructive",
-      });
+
+      if (error?.message?.includes("401")) {
+        toast({
+          title: "세션 만료",
+          description: "다시 로그인해주세요.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "#/login";
+        }, 1500);
+      } else {
+        toast({
+          title: "오류",
+          description: error?.message || "그룹 목록을 불러오는데 실패했습니다.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -139,16 +117,8 @@ const GroupStudy: React.FC = () => {
     }
   };
 
+  // ✅ JWT 기반 그룹 생성
   const handleCreateGroup = async () => {
-    if (!user) {
-      toast({
-        title: "로그인 필요",
-        description: "그룹을 생성하려면 로그인이 필요합니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!newGroup.groupName.trim()) {
       toast({
         title: "오류",
@@ -160,17 +130,32 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ JWT에서 leaderId 자동 추출 및 멤버 자동 추가 (백엔드에서 처리)
-      await groupAPI.createGroup({
+      // 1. 그룹 생성
+      const createdGroup = await groupAPI.createGroup({
         groupName: newGroup.groupName,
       });
 
-      toast({ title: "성공", description: "그룹이 생성되었습니다." });
+      // 2. ✅ 생성자를 멤버로 추가 (백엔드가 자동으로 안 해주는 경우 대비)
+      try {
+        // Profile에서 사용자 ID 가져오기
+        const profile = await authAPI.getProfile();
+        if (profile.id) {
+          await groupAPI.addMember(createdGroup.id, Number(profile.id));
+          console.log("멤버 추가 성공");
+        }
+      } catch (addError: any) {
+        console.warn("멤버 추가 실패 (이미 추가되었을 수 있음):", addError);
+        // 실패해도 계속 진행 (이미 멤버일 수 있음)
+      }
+
+      toast({
+        title: "성공",
+        description: "그룹이 생성되었습니다.",
+      });
       setCreateGroupDialogOpen(false);
       setNewGroup({ groupName: "" });
       await loadMyGroups();
     } catch (error: any) {
-      console.error("그룹 생성 에러:", error);
       toast({
         title: "오류",
         description: error?.message || "그룹 생성에 실패했습니다.",
@@ -181,16 +166,8 @@ const GroupStudy: React.FC = () => {
     }
   };
 
+  // ✅ JWT 기반 방 생성
   const handleCreateRoom = async () => {
-    if (!user) {
-      toast({
-        title: "로그인 필요",
-        description: "방을 생성하려면 로그인이 필요합니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!newRoom.roomName.trim() || selectedGroupId === null) {
       toast({
         title: "오류",
@@ -202,8 +179,7 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ JWT에서 creatorId 자동 추출 (파라미터 불필요)
-      await studyRoomAPI.createRoom({
+      const createdRoom = await studyRoomAPI.createRoom({
         groupId: selectedGroupId,
         roomName: newRoom.roomName,
         studyField: newRoom.studyField,
@@ -211,7 +187,10 @@ const GroupStudy: React.FC = () => {
         maxMembers: newRoom.maxMembers,
       });
 
-      toast({ title: "성공", description: "스터디 방이 생성되었습니다." });
+      toast({
+        title: "성공",
+        description: "스터디 방이 생성되었습니다.",
+      });
       setCreateRoomDialogOpen(false);
       setNewRoom({
         roomName: "",
@@ -219,7 +198,9 @@ const GroupStudy: React.FC = () => {
         studyHours: 2,
         studyField: "프로그래밍",
       });
-      await loadGroupRooms(selectedGroupId);
+
+      // ✅ 생성 후 바로 이동
+      navigate(`/group-study/room/${createdRoom.id}`);
     } catch (error: any) {
       toast({
         title: "오류",
@@ -236,7 +217,6 @@ const GroupStudy: React.FC = () => {
 
     setLoading(true);
     try {
-      // ✅ JWT에서 userId 자동 추출 (파라미터 불필요)
       await groupAPI.deleteGroup(groupId);
       toast({ title: "성공", description: "그룹이 삭제되었습니다." });
       await loadMyGroups();
@@ -252,29 +232,39 @@ const GroupStudy: React.FC = () => {
   };
 
   const handleJoinRoom = async (roomId: number) => {
-    if (!user) {
-      toast({
-        title: "로그인 필요",
-        description: "참여하려면 로그인이 필요합니다.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      // ✅ JWT에서 memberId 자동 추출 (파라미터 불필요)
       await studyRoomAPI.joinRoom(roomId);
-      toast({ title: "성공", description: "스터디 방에 참여했습니다." });
-
-      // ✅ 스터디룸 페이지로 이동
-      navigate(`/room/${roomId}`);
-    } catch (error: any) {
       toast({
-        title: "오류",
-        description: error?.message || "스터디 방 참여에 실패했습니다.",
-        variant: "destructive",
+        title: "성공",
+        description: "스터디 방에 참여했습니다.",
       });
+
+      navigate(`/group-study/room/${roomId}`);
+    } catch (error: any) {
+      console.error("방 참여 에러:", error);
+
+      // ✅ 500 에러 처리 개선
+      if (error?.message?.includes("500")) {
+        // 이미 참여 중일 수 있으니 일단 입장 시도
+        toast({
+          title: "알림",
+          description: "이미 참여 중인 방입니다. 입장합니다.",
+        });
+        navigate(`/group-study/room/${roomId}`);
+      } else if (error?.message?.includes("이미")) {
+        toast({
+          title: "알림",
+          description: "이미 참여 중인 방입니다.",
+        });
+        navigate(`/group-study/room/${roomId}`);
+      } else {
+        toast({
+          title: "오류",
+          description: error?.message || "스터디 방 참여에 실패했습니다.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -286,7 +276,6 @@ const GroupStudy: React.FC = () => {
     toast({ title: "성공", description: "초대 링크가 복사되었습니다." });
   };
 
-  // 로그인하지 않은 경우 안내 메시지
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -325,7 +314,6 @@ const GroupStudy: React.FC = () => {
           </div>
 
           <div className="flex space-x-3">
-            {/* 그룹 생성 */}
             <Dialog
               open={createGroupDialogOpen}
               onOpenChange={setCreateGroupDialogOpen}
@@ -374,7 +362,6 @@ const GroupStudy: React.FC = () => {
               </DialogContent>
             </Dialog>
 
-            {/* 스터디 방 생성 */}
             <Dialog
               open={createRoomDialogOpen}
               onOpenChange={setCreateRoomDialogOpen}
@@ -507,7 +494,6 @@ const GroupStudy: React.FC = () => {
           </div>
         </div>
 
-        {/* 그룹 및 방 목록 */}
         <Tabs defaultValue="groups" className="space-y-6">
           <TabsList>
             <TabsTrigger value="groups">내 그룹</TabsTrigger>
@@ -545,7 +531,10 @@ const GroupStudy: React.FC = () => {
                             {group.groupName}
                           </CardTitle>
                           <CardDescription className="mt-1">
-                            방장 ID: {group.leaderId}
+                            생성일:{" "}
+                            {new Date(group.createdAt).toLocaleDateString(
+                              "ko-KR"
+                            )}
                           </CardDescription>
                         </div>
                         <div className="flex space-x-1">
@@ -570,16 +559,9 @@ const GroupStudy: React.FC = () => {
                     </CardHeader>
 
                     <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-500">
-                          {new Date(group.createdAt).toLocaleDateString(
-                            "ko-KR"
-                          )}
-                        </div>
-                        <Badge variant="secondary">
-                          활성 방 {groupRooms[group.id]?.length || 0}개
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary">
+                        활성 방 {groupRooms[group.id]?.length || 0}개
+                      </Badge>
                     </CardContent>
                   </Card>
                 ))}
