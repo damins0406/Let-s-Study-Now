@@ -922,10 +922,10 @@ const OpenStudyRoomPage: React.FC = () => {
                 {levelInfo && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-sky-50 rounded-lg border border-indigo-200">
                     <span className="font-semibold text-indigo-700">
-                      레벨 {levelInfo.level}
+                      레벨 {levelInfo.currentLevel}
                     </span>
                     <span className="text-xs text-gray-600">
-                      ({Math.round((levelInfo.currentLevelExp / levelInfo.expForNextLevel) * 100)}%)
+                      ({Math.round(levelInfo.progress)}%)
                     </span>
                   </div>
                 )}

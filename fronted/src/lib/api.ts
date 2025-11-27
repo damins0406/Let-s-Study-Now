@@ -257,10 +257,27 @@ export interface SessionEndResultDto {
 }
 
 export interface LevelInfoDto {
-  level: number;
-  exp: number;
+  memberId: number;
+  username: string;
+  currentLevel: number;
+  totalExp: number;
   currentLevelExp: number;
-  expForNextLevel: number;
+  requiredExpForNextLevel: number;
+  remainingExp: number;
+  progress: number; // 0~100%
+}
+
+// ✅ 세션 응답 DTO (백엔드 SessionResponseDto와 일치)
+export interface SessionResponseDto {
+  sessionId: number;
+  memberId: number;
+  studyType: string;
+  roomId: number;
+  mode: string;
+  studyMinutes: number;
+  startTime: string;
+  endTime: string | null;
+  isActive: boolean;
 }
 
 //
@@ -483,7 +500,7 @@ export const timerAPI = {
 export const sessionAPI = {
   // POST /api/study-sessions/start - 스터디 세션 시작
   startSession: (request: SessionStartRequestDto) =>
-    apiClient.post<{ sessionId: number }>("/api/study-sessions/start", request),
+    apiClient.post<SessionResponseDto>("/api/study-sessions/start", request),
 
   // POST /api/study-sessions/{sessionId}/end - 스터디 세션 종료
   endSession: (sessionId: number) =>
