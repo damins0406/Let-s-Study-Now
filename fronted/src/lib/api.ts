@@ -39,28 +39,14 @@ class ApiClient {
         // ✅ 서버에서 보낸 에러 메시지 파싱
         let errorMessage = `HTTP error! status: ${response.status}`;
         try {
-          const contentType = response.headers.get("content-type");
-
-          // JSON 응답 시도
-          if (contentType && contentType.includes("application/json")) {
-            const errorData = await response.json();
-            if (errorData.message) {
-              errorMessage = errorData.message;
-            } else if (errorData.error) {
-              errorMessage = errorData.error;
-            }
-          } else {
-            // ✅ 텍스트 응답 시도 (백엔드가 plain text로 보낼 수 있음)
-            const textError = await response.text();
-            if (textError && textError.trim()) {
-              errorMessage = textError.trim();
-            }
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          } else if (errorData.error) {
+            errorMessage = errorData.error;
           }
-
-          console.log(`[API Error ${response.status}] Original:`, errorMessage);
         } catch (e) {
-          console.error("에러 메시지 파싱 실패:", e);
-          // JSON/Text 파싱 실패 시 기본 메시지 사용
+          // JSON 파싱 실패 시 기본 메시지 사용
         }
 
         // 인증 실패 시 로그인 페이지로 리다이렉트
@@ -243,35 +229,18 @@ export interface Checklist {
 }
 
 // ✅ 타이머 관련 타입
-export type TimerMode = "BASIC" | "POMODORO";
-export type TimerStatus = "STUDYING" | "RESTING";
+export type TimerMode = "STUDY" | "REST";
+export type TimerStatus = "RUNNING" | "PAUSED" | "STOPPED";
 
 export interface TimerStatusResponse {
-  isRunning: boolean;
-  mode: TimerMode;
-  status: TimerStatus;
-  elapsedSeconds: number;
-  studySeconds: number;
-  restSeconds: number;
-  formattedElapsedTime: string;
-  pomodoroSetting?: PomodoroSettingResponse;
-}
-
-export interface PomodoroSettingResponse {
-  studyMinutes: number;
-  restMinutes: number;
-}
-
-export interface PomodoroSettingRequest {
-  studyMinutes: number;
-  restMinutes: number;
-}
-
-export interface StudyTimeResponse {
+  timerId: number;
+  memberId: number;
+  roomId: number;
+  timerMode: TimerMode;
+  timerStatus: TimerStatus;
+  currentSessionSeconds: number;
   totalStudySeconds: number;
-  todayStudySeconds: number;
-  formattedTotalTime: string;
-  formattedTodayTime: string;
+  totalStudyTime: string;
 }
 
 //
@@ -310,7 +279,7 @@ export const authAPI = {
   }) => apiClient.patch<{ message: string }>("/api/update/password", data),
 
   deleteAccount: (password: string) =>
-    apiClient.post<{ message: string }>("/api/delete/account", { password }),
+    apiClient.delete<{ message: string }>("/api/delete/account", { password }),
 };
 
 // 👥 그룹 관련

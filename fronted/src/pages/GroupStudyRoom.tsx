@@ -268,9 +268,9 @@ const GroupStudyRoomPage: React.FC = () => {
     if (!timerStatus) return;
 
     try {
-      // ✅ api.ts의 TimerStatus 타입 사용: "STUDYING" | "RESTING"
-      const newStatus: TimerStatus =
-        timerStatus.status === "STUDYING" ? "RESTING" : "STUDYING";
+      // ✅ api.ts의 TimerMode 타입 사용: "STUDY" | "REST"
+      const newMode: TimerMode =
+        timerStatus.timerMode === "STUDY" ? "REST" : "STUDY";
 
       // 백엔드 API 호출 (구현 필요)
       // const newTimerStatus = await timerAPI.toggleStatus();
@@ -279,19 +279,19 @@ const GroupStudyRoomPage: React.FC = () => {
       // 임시: 로컬 상태만 업데이트
       const updatedStatus: TimerStatusResponse = {
         ...timerStatus,
-        status: newStatus,
+        timerMode: newMode,
       };
       setTimerStatus(updatedStatus);
 
-      const statusText = newStatus === "STUDYING" ? "공부" : "휴식";
+      const modeText = newMode === "STUDY" ? "공부" : "휴식";
 
       addSystemMessage(
-        `${user?.username}님이 ${statusText} 모드로 전환했습니다.`
+        `${user?.username}님이 ${modeText} 모드로 전환했습니다.`
       );
 
       toast({
-        title: `${statusText} 모드`,
-        description: `${statusText} 모드로 전환되었습니다.`,
+        title: `${modeText} 모드`,
+        description: `${modeText} 모드로 전환되었습니다.`,
       });
     } catch (error: any) {
       toast({
@@ -496,30 +496,30 @@ const GroupStudyRoomPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <Button
                 variant={
-                  timerStatus?.status === "STUDYING" ? "default" : "outline"
+                  timerStatus?.timerMode === "STUDY" ? "default" : "outline"
                 }
                 className={
-                  timerStatus?.status === "STUDYING"
+                  timerStatus?.timerMode === "STUDY"
                     ? "bg-green-500 hover:bg-green-600"
                     : ""
                 }
                 onClick={handleStatusToggle}
-                disabled={!timerStatus || !timerStatus.isRunning}
+                disabled={!timerStatus || timerStatus.timerStatus !== "RUNNING"}
               >
                 <BookOpen className="w-4 h-4 mr-2" />
                 공부중
               </Button>
               <Button
                 variant={
-                  timerStatus?.status === "RESTING" ? "default" : "outline"
+                  timerStatus?.timerMode === "REST" ? "default" : "outline"
                 }
                 className={
-                  timerStatus?.status === "RESTING"
+                  timerStatus?.timerMode === "REST"
                     ? "bg-orange-500 hover:bg-orange-600"
                     : ""
                 }
                 onClick={handleStatusToggle}
-                disabled={!timerStatus || !timerStatus.isRunning}
+                disabled={!timerStatus || timerStatus.timerStatus !== "RUNNING"}
               >
                 <Coffee className="w-4 h-4 mr-2" />
                 휴식중
@@ -531,43 +531,40 @@ const GroupStudyRoomPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <span
                     className={`text-2xl font-bold tabular-nums ${
-                      timerStatus?.status === "STUDYING"
+                      timerStatus?.timerMode === "STUDY"
                         ? "text-green-600"
                         : "text-orange-400"
                     }`}
                   >
-                    {timerStatus?.formattedElapsedTime || "00:00"}
+                    {timerStatus
+                      ? formatTime(timerStatus.currentSessionSeconds)
+                      : "00:00"}
                   </span>
-                  {timerStatus?.isRunning ? (
+                  {timerStatus?.timerStatus === "RUNNING" ? (
                     <span className="flex items-center text-xs text-green-600">
                       <Play className="w-3 h-3 mr-1" />
                       진행중
                     </span>
-                  ) : (
+                  ) : timerStatus?.timerStatus === "PAUSED" ? (
                     <span className="flex items-center text-xs text-orange-500">
                       <Pause className="w-3 h-3 mr-1" />
                       일시정지
+                    </span>
+                  ) : (
+                    <span className="flex items-center text-xs text-gray-500">
+                      <Pause className="w-3 h-3 mr-1" />
+                      정지
                     </span>
                   )}
                 </div>
               </div>
 
-              {/* ✅ 학습/휴식 시간 */}
+              {/* ✅ 총 학습 시간 */}
               <div className="ml-auto flex items-center gap-4 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
-                  <BookOpen className="w-4 h-4 text-green-500" />
+                  <TrendingUp className="w-4 h-4 text-green-500" />
                   <span>
-                    학습:{" "}
-                    {timerStatus
-                      ? formatTime(timerStatus.studySeconds)
-                      : "0:00"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Coffee className="w-4 h-4 text-orange-500" />
-                  <span>
-                    휴식:{" "}
-                    {timerStatus ? formatTime(timerStatus.restSeconds) : "0:00"}
+                    총 학습: {timerStatus?.totalStudyTime || "0:00:00"}
                   </span>
                 </div>
               </div>
