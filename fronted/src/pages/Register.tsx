@@ -30,11 +30,10 @@ const STUDY_FIELDS = [
 
 const Register: React.FC = () => {
   const [formData, setFormData] = useState({
-    email: "", // ✅ 로그인 ID (이메일)
-    username: "", // ✅ 닉네임
+    email: "",
+    username: "",
     password: "",
     confirmPassword: "",
-    // ❌ age 제거
     bio: "",
     studyFields: [] as string[],
   });
@@ -65,17 +64,14 @@ const Register: React.FC = () => {
     }));
   };
 
-  // ✅ 프로필 이미지 선택 핸들러
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // 파일 크기 체크 (5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert("이미지 크기는 5MB를 초과할 수 없습니다.");
         return;
       }
 
-      // 파일 타입 체크
       if (!file.type.startsWith("image/")) {
         alert("이미지 파일만 업로드 가능합니다.");
         return;
@@ -83,7 +79,6 @@ const Register: React.FC = () => {
 
       setProfileImage(file);
 
-      // 미리보기 생성
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -92,7 +87,6 @@ const Register: React.FC = () => {
     }
   };
 
-  // ✅ 이미지 제거 핸들러
   const handleRemoveImage = () => {
     setProfileImage(null);
     setImagePreview("");
@@ -114,36 +108,57 @@ const Register: React.FC = () => {
     setLoading(true);
 
     const payload: any = {
-      email: formData.email, // ✅ 로그인 ID
-      username: formData.username, // ✅ 닉네임
+      email: formData.email,
+      username: formData.username,
       password: formData.password,
       checkPassword: formData.confirmPassword,
-      studyField: formData.studyFields[0], // 배열의 첫 번째 값만 전달
+      studyField: formData.studyFields[0],
       checkPw: true,
     };
 
-    // ❌ age 필드 제거
-    // if (formData.age) {
-    //   payload.age = parseInt(formData.age);
-    // }
-
-    // ✅ 선택적 필드는 값이 있을 때만 추가
     if (formData.bio) {
       payload.bio = formData.bio;
     }
 
-    // ✅ 프로필 이미지가 있으면 추가
     if (profileImage) {
       payload.profileImageFile = profileImage;
     }
 
-    console.log("📤 보낼 데이터:", payload); // 확인용
+    console.log("📤 보낼 데이터:", payload);
 
-    const success = await register(payload);
-    setLoading(false);
+    try {
+      const success = await register(payload);
+      setLoading(false);
 
-    if (success) {
-      navigate("/login");
+      if (success) {
+        navigate("/login");
+      }
+    } catch (error: any) {
+      setLoading(false);
+
+      console.error("=== 회원가입 에러 상세 ===");
+      console.error("전체 에러 객체:", error);
+      console.error("에러 메시지:", error?.message);
+      console.error("에러 타입:", typeof error);
+
+      // ✅ 백엔드 에러 메시지를 그대로 표시
+      let errorMessage = "회원가입에 실패했습니다.";
+
+      if (error?.message) {
+        // 백엔드에서 보낸 메시지를 그대로 사용
+        errorMessage = error.message;
+
+        // HTTP 상태 코드만 제거
+        errorMessage = errorMessage
+          .replace(/HTTP error! status: \d+\s*/g, "")
+          .trim();
+      }
+
+      // 최종 에러 메시지 표시
+      console.error("=== 사용자에게 표시할 메시지 ===");
+      console.error(errorMessage);
+
+      alert(`회원가입 실패\n\n${errorMessage}`);
     }
   };
 
@@ -171,7 +186,7 @@ const Register: React.FC = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* ✅ 프로필 이미지 업로드 */}
+              {/* 프로필 이미지 업로드 */}
               <div className="flex flex-col items-center space-y-4">
                 <div className="relative">
                   <Avatar className="w-24 h-24">
@@ -217,7 +232,7 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
-              {/* ✅ 이메일 (로그인 ID) */}
+              {/* 이메일 */}
               <div className="space-y-2">
                 <Label htmlFor="email">이메일 (로그인 ID) *</Label>
                 <Input
@@ -234,7 +249,7 @@ const Register: React.FC = () => {
                 </p>
               </div>
 
-              {/* ✅ 닉네임 (username) */}
+              {/* 닉네임 */}
               <div className="space-y-2">
                 <Label htmlFor="username">닉네임 *</Label>
                 <Input

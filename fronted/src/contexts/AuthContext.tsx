@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>; // 이메일 로그인
+  login: (email: string, password: string) => Promise<boolean>;
   register: (data: any) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
@@ -53,7 +53,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  // 이메일 기반 로그인
+  // ✅ 이메일 기반 로그인
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       await authAPI.login({ email, password });
@@ -70,21 +70,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error: any) {
       console.error("Login failed:", error);
 
-      const msg =
-        error?.response?.data?.message === "INVALID_CREDENTIALS"
-          ? "이메일 또는 비밀번호를 확인해주세요."
-          : "로그인 중 오류가 발생했습니다.";
+      // ✅ error.message에서 에러 메시지 추출 (api.ts에서 처리됨)
+      const errorMsg = error?.message || "";
+
+      let description = "로그인 중 오류가 발생했습니다.";
+
+      // 백엔드 에러 메시지에 따라 처리
+      if (
+        errorMsg.includes("자격 증명") ||
+        errorMsg.includes("credentials") ||
+        errorMsg.includes("401")
+      ) {
+        description = "이메일 또는 비밀번호를 확인해주세요.";
+      } else if (errorMsg.includes("이메일")) {
+        description = "이메일을 확인해주세요.";
+      } else if (errorMsg.includes("비밀번호")) {
+        description = "비밀번호를 확인해주세요.";
+      }
 
       toast({
         title: "로그인 실패",
-        description: msg,
+        description,
         variant: "destructive",
       });
       return false;
     }
   };
 
-  // 회원가입 (이메일/닉네임 중복 체크)
+  // ✅ 회원가입
   const register = async (data: any): Promise<boolean> => {
     try {
       await authAPI.register(data);
@@ -97,15 +110,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true;
     } catch (error: any) {
       console.error("Registration failed:", error);
+      console.error("Error message:", error?.message);
 
-      const errMsg = error?.response?.data?.message;
+      // ✅ 백엔드 에러 메시지를 그대로 사용
+      const errorMsg = error?.message || "";
 
-      let description = "입력 정보를 다시 확인해주세요.";
+      // HTTP 상태 코드 제거
+      let description = errorMsg
+        .replace(/HTTP error! status: \d+\s*/g, "")
+        .trim();
 
-      if (errMsg === "EMAIL_EXISTS")
-        description = "이미 사용 중인 이메일입니다.";
-      if (errMsg === "USERNAME_EXISTS")
-        description = "이미 사용 중인 사용자명(닉네임)입니다.";
+      // 메시지가 비어있으면 기본 메시지
+      if (!description) {
+        description = "입력 정보를 다시 확인해주세요.";
+      }
+
+      console.error("Final description:", description);
 
       toast({
         title: "회원가입 실패",
@@ -117,7 +137,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // 로그아웃
+  // ✅ 로그아웃
   const logout = async (): Promise<void> => {
     try {
       await authAPI.logout();
@@ -143,11 +163,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error("Failed to refresh user:", error);
       setUser(null);
-      toast({
-        title: "세션 만료",
-        description: "다시 로그인해주세요.",
-        variant: "destructive",
-      });
+
+      // ✅ 401 에러일 때만 세션 만료 메시지
+      const errorMsg = (error as any)?.message || "";
+      if (errorMsg.includes("401")) {
+        toast({
+          title: "세션 만료",
+          description: "다시 로그인해주세요.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
