@@ -11,8 +11,8 @@ import Profile from "./pages/Profile";
 import OpenStudy from "./pages/OpenStudy";
 import GroupStudy from "./pages/GroupStudy";
 import Checklist from "./pages/Checklist";
-import StudyRoom from "./pages/StudyRoom";
 import OpenStudyRoom from "./pages/OpenStudyRoom";
+import GroupStudyRoom from "./pages/GroupStudyRoom"; // ✅ 추가
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,10 +32,16 @@ const App = () => (
             <Route path="/open-study" element={<OpenStudy />} />
             <Route path="/group-study" element={<GroupStudy />} />
             <Route path="/checklist" element={<Checklist />} />
-            {/* 그룹 스터디룸 페이지 */}
-            <Route path="/room/:roomId" element={<StudyRoom />} />
+            {/* ✅ 추가: 그룹 스터디룸 페이지 */}
+            <Route
+              path="/group-study/room/:roomId"
+              element={<GroupStudyRoom />}
+            />
             {/* 오픈 스터디룸 페이지 */}
-            <Route path="/open-study/room/:roomId" element={<OpenStudyRoom />} />
+            <Route
+              path="/open-study/room/:roomId"
+              element={<OpenStudyRoom />}
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
