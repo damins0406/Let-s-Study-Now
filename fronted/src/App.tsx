@@ -31,6 +31,8 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/open-study" element={<OpenStudy />} />
             <Route path="/group-study" element={<GroupStudy />} />
+            {/* 초대 링크 라우트 (별도 페이지 없이 GroupStudy에서 처리) */}
+            <Route path="/group-invite/:groupId" element={<GroupStudy />} />
             <Route path="/checklist" element={<Checklist />} />
             {/* ✅ 추가: 그룹 스터디룸 페이지 */}
             <Route
