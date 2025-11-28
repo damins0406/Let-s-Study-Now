@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,9 +28,21 @@ import {
   authAPI, // ✅ 추가
   Group,
   GroupStudyRoom,
+  GroupMember,
 } from "@/lib/api";
-import { Users, Plus, Copy, Trash2, Clock, BookOpen } from "lucide-react";
+import { Users, Plus, Copy, Trash2, Clock, BookOpen, UserX } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const STUDY_FIELDS = [
   "프로그래밍",
@@ -46,6 +58,7 @@ const STUDY_FIELDS = [
 const GroupStudy: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { groupId: inviteGroupId } = useParams<{ groupId?: string }>();
   const [myGroups, setMyGroups] = useState<Group[]>([]);
   const [groupRooms, setGroupRooms] = useState<{
     [groupId: number]: GroupStudyRoom[];
@@ -54,6 +67,12 @@ const GroupStudy: React.FC = () => {
   const [createGroupDialogOpen, setCreateGroupDialogOpen] = useState(false);
   const [createRoomDialogOpen, setCreateRoomDialogOpen] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
+  const [selectedGroupForMembers, setSelectedGroupForMembers] = useState<Group | null>(null);
+  const [groupMembers, setGroupMembers] = useState<GroupMember[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(null);
 
   const [newGroup, setNewGroup] = useState({
     groupName: "",
@@ -71,6 +90,100 @@ const GroupStudy: React.FC = () => {
       loadMyGroups();
     }
   }, [user]);
+
+  // 초대 링크 처리 (UI만 구현, API는 나중에)
+  useEffect(() => {
+    // URL에서 초대 그룹 ID 확인 (예: /group-invite/123)
+    const handleInviteLink = async () => {
+      if (!inviteGroupId) return;
+
+      const groupId = Number(inviteGroupId);
+      if (isNaN(groupId)) return;
+
+      // 로그인 상태 확인
+      if (!user) {
+        // 로그인 페이지로 이동 (초대 링크 정보 저장)
+        const inviteLink = `${window.location.origin}/#/group-invite/${groupId}`;
+        localStorage.setItem("pendingInvite", inviteLink);
+        navigate("/login");
+        return;
+      }
+
+      // 이미 로그인된 경우
+      try {
+        // 그룹 목록 로드
+        const groups = await groupAPI.getMyGroups();
+        const isAlreadyMember = groups.some((g) => g.id === groupId);
+
+        if (isAlreadyMember) {
+          // 이미 멤버인 경우 그룹 멤버 다이얼로그 열기
+          const group = groups.find((g) => g.id === groupId);
+          if (group) {
+            // 멤버 목록 로드 및 다이얼로그 열기
+            setSelectedGroupForMembers(group);
+            setLoadingMembers(true);
+            try {
+              const members = await groupAPI.getMembers(group.id);
+              setGroupMembers(members);
+              setMembersDialogOpen(true);
+            } catch (error) {
+              console.error("멤버 로드 실패:", error);
+            } finally {
+              setLoadingMembers(false);
+            }
+            // URL 정리
+            navigate("/group-study", { replace: true });
+          }
+        } else {
+          // 멤버가 아닌 경우 자동 추가
+          try {
+            await groupAPI.addMember(groupId, Number(user.id));
+            toast({
+              title: "성공",
+              description: "그룹에 자동으로 추가되었습니다.",
+            });
+            await loadMyGroups();
+            // 추가된 그룹의 멤버 다이얼로그 열기
+            const updatedGroups = await groupAPI.getMyGroups();
+            const addedGroup = updatedGroups.find((g) => g.id === groupId);
+            if (addedGroup) {
+              setSelectedGroupForMembers(addedGroup);
+              setLoadingMembers(true);
+              try {
+                const members = await groupAPI.getMembers(addedGroup.id);
+                setGroupMembers(members);
+                setMembersDialogOpen(true);
+              } catch (error) {
+                console.error("멤버 로드 실패:", error);
+              } finally {
+                setLoadingMembers(false);
+              }
+            }
+          } catch (addError: any) {
+            console.error("멤버 추가 실패:", addError);
+            toast({
+              title: "오류",
+              description: addError?.message || "그룹에 추가하는데 실패했습니다.",
+              variant: "destructive",
+            });
+          }
+          // URL 정리
+          navigate("/group-study", { replace: true });
+        }
+      } catch (error: any) {
+        console.error("초대 링크 처리 실패:", error);
+        toast({
+          title: "오류",
+          description: "초대 링크 처리에 실패했습니다.",
+          variant: "destructive",
+        });
+        navigate("/group-study", { replace: true });
+      }
+    };
+
+    handleInviteLink();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteGroupId, user, navigate]);
 
   // ✅ JWT 기반 그룹 로드
   const loadMyGroups = async () => {
@@ -272,8 +385,67 @@ const GroupStudy: React.FC = () => {
 
   const copyInviteLink = (groupId: number) => {
     const inviteLink = `${window.location.origin}/#/group-invite/${groupId}`;
-    navigator.clipboard.writeText(inviteLink);
-    toast({ title: "성공", description: "초대 링크가 복사되었습니다." });
+    navigator.clipboard
+      .writeText(inviteLink)
+      .then(() => {
+        toast({ title: "성공", description: "초대 링크가 클립보드에 복사되었습니다." });
+      })
+      .catch(() => {
+        toast({
+          title: "오류",
+          description: "링크 복사에 실패했습니다.",
+          variant: "destructive",
+        });
+      });
+  };
+
+  // 그룹 멤버 로드
+  const loadGroupMembers = async (group: Group) => {
+    setSelectedGroupForMembers(group);
+    setLoadingMembers(true);
+    try {
+      const members = await groupAPI.getMembers(group.id);
+      setGroupMembers(members);
+      setMembersDialogOpen(true);
+    } catch (error: any) {
+      console.error("멤버 로드 실패:", error);
+      toast({
+        title: "오류",
+        description: error?.message || "멤버 목록을 불러오는데 실패했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  // 멤버 추방
+  const handleRemoveMember = async () => {
+    if (!memberToRemove || !selectedGroupForMembers) return;
+
+    setLoading(true);
+    try {
+      await groupAPI.removeMember(
+        selectedGroupForMembers.id,
+        memberToRemove.memberId
+      );
+      toast({
+        title: "성공",
+        description: "멤버가 추방되었습니다.",
+      });
+      setRemoveMemberDialogOpen(false);
+      setMemberToRemove(null);
+      // 멤버 목록 새로고침
+      await loadGroupMembers(selectedGroupForMembers);
+    } catch (error: any) {
+      toast({
+        title: "오류",
+        description: error?.message || "멤버 추방에 실패했습니다.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!user) {
@@ -559,9 +731,20 @@ const GroupStudy: React.FC = () => {
                     </CardHeader>
 
                     <CardContent>
-                      <Badge variant="secondary">
-                        활성 방 {groupRooms[group.id]?.length || 0}개
-                      </Badge>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary">
+                          활성 방 {groupRooms[group.id]?.length || 0}개
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => loadGroupMembers(group)}
+                          disabled={loadingMembers}
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          멤버 보기
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -642,6 +825,186 @@ const GroupStudy: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* 그룹 멤버 다이얼로그 */}
+      <Dialog open={membersDialogOpen} onOpenChange={setMembersDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedGroupForMembers?.groupName} 멤버 목록
+            </DialogTitle>
+            <DialogDescription>
+              그룹에 소속된 멤버들을 확인하고 관리할 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* 방장인 경우 초대 링크 복사 버튼 */}
+            {selectedGroupForMembers &&
+              user &&
+              selectedGroupForMembers.leaderId === Number(user.id) && (
+                <div className="flex items-center justify-between p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <div>
+                    <p className="text-sm font-medium text-indigo-900">
+                      초대 링크 공유
+                    </p>
+                    <p className="text-xs text-indigo-700 mt-1">
+                      링크를 복사하여 외부 사용자를 초대하세요
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      copyInviteLink(selectedGroupForMembers.id)
+                    }
+                  >
+                    <Copy className="w-4 h-4 mr-2" />
+                    초대 링크 복사
+                  </Button>
+                </div>
+              )}
+
+            {/* 멤버 목록 */}
+            <div className="border rounded-lg">
+              {loadingMembers ? (
+                <div className="p-8 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                  <p className="text-sm text-gray-500">멤버 목록을 불러오는 중...</p>
+                </div>
+              ) : groupMembers.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-sm text-gray-500">멤버가 없습니다.</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {groupMembers.map((member) => {
+                    const isLeader =
+                      selectedGroupForMembers?.leaderId === member.memberId;
+                    const isCurrentUser =
+                      user && Number(user.id) === member.memberId;
+
+                    return (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center space-x-3 flex-1">
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback
+                              className={
+                                isLeader
+                                  ? "bg-yellow-500 text-white"
+                                  : isCurrentUser
+                                  ? "bg-indigo-500 text-white"
+                                  : "bg-gray-400 text-white"
+                              }
+                            >
+                              {member.memberId.toString().charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-900">
+                                멤버 #{member.memberId}
+                              </span>
+                              {isLeader && (
+                                <Badge
+                                  variant="secondary"
+                                  className="text-xs bg-yellow-100 text-yellow-800"
+                                >
+                                  방장
+                                </Badge>
+                              )}
+                              {isCurrentUser && !isLeader && (
+                                <Badge variant="secondary" className="text-xs">
+                                  나
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                {member.role}
+                              </span>
+                              <span className="text-xs text-gray-400">•</span>
+                              <span className="text-xs text-gray-500">
+                                가입일:{" "}
+                                {new Date(member.joinedAt).toLocaleDateString(
+                                  "ko-KR"
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 방장인 경우 추방 버튼 표시 (본인 제외) */}
+                        {selectedGroupForMembers &&
+                          user &&
+                          selectedGroupForMembers.leaderId ===
+                            Number(user.id) &&
+                          !isLeader && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                setMemberToRemove(member);
+                                setRemoveMemberDialogOpen(true);
+                              }}
+                            >
+                              <UserX className="w-4 h-4 mr-1" />
+                              추방
+                            </Button>
+                          )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setMembersDialogOpen(false)}
+            >
+              닫기
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 멤버 추방 확인 다이얼로그 */}
+      <AlertDialog
+        open={removeMemberDialogOpen}
+        onOpenChange={setRemoveMemberDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>멤버 추방 확인</AlertDialogTitle>
+            <AlertDialogDescription>
+              정말로 이 멤버를 그룹에서 추방하시겠습니까?
+              <br />
+              <span className="font-medium text-gray-900 mt-2 block">
+                멤버 #{memberToRemove?.memberId}
+              </span>
+              <br />
+              추방된 사용자는 더 이상 해당 그룹의 스터디에 참여하거나 그룹
+              스터디 페이지에 접근할 수 없습니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveMember}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              추방하기
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
