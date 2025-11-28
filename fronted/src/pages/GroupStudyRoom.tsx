@@ -105,6 +105,7 @@ const GroupStudyRoomPage: React.FC = () => {
   // Level Info
   const [levelInfo, setLevelInfo] = useState<LevelInfoDto | null>(null);
 
+<<<<<<< HEAD
   // Participants (UI용 더미 데이터)
   const [participants, setParticipants] = useState<Participant[]>([
     {
@@ -177,6 +178,21 @@ const GroupStudyRoomPage: React.FC = () => {
     setIsEditingStatusMessage(false);
     setStatusMessageInput("");
   };
+
+  // Question mode
+  const [isQuestionMode, setIsQuestionMode] = useState(false);
+  const [questionImage, setQuestionImage] = useState<string | null>(null);
+  const [questionFileName, setQuestionFileName] = useState<string | null>(null);
+
+  // Answer input for specific question
+  const [answerInputs, setAnswerInputs] = useState<Record<string, string>>({});
+
+  // Question list popover
+  const [questionListOpen, setQuestionListOpen] = useState(false);
+=======
+  // Participants
+  const [participants, setParticipants] = useState<StudyRoomParticipant[]>([]);
+>>>>>>> origin/fronted
 
   // Question mode
   const [isQuestionMode, setIsQuestionMode] = useState(false);
