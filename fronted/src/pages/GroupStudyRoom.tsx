@@ -24,14 +24,12 @@ import {
   timerAPI,
   sessionAPI,
   GroupStudyRoom,
-  StudyRoomParticipant,
   TimerStatusResponse,
   TimerStatus,
   TimerMode,
   LevelInfoDto,
 } from "@/lib/api";
 import {
-  Users,
   Clock,
   Send,
   LogOut,
@@ -47,6 +45,9 @@ import {
   AlertCircle,
   Paperclip,
   Image as ImageIcon,
+  Users,
+  Edit2,
+  Check,
 } from "lucide-react";
 
 interface HelpAnswer {
@@ -69,6 +70,16 @@ interface ChatMessage {
   fileName?: string;
 }
 
+// 참여자 정보 인터페이스 (UI용 더미 데이터)
+interface Participant {
+  id: number;
+  username: string;
+  profileImageUrl?: string;
+  timerStatus: "STUDYING" | "RESTING";
+  statusMessage?: string;
+  isCreator?: boolean;
+}
+
 const GroupStudyRoomPage: React.FC = () => {
   const { user } = useAuth();
   const { roomId } = useParams<{ roomId: string }>();
@@ -80,6 +91,7 @@ const GroupStudyRoomPage: React.FC = () => {
   // Room Info
   const [roomInfo, setRoomInfo] = useState<GroupStudyRoom | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Chat
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -93,8 +105,94 @@ const GroupStudyRoomPage: React.FC = () => {
   // Level Info
   const [levelInfo, setLevelInfo] = useState<LevelInfoDto | null>(null);
 
+<<<<<<< HEAD
+  // Participants (UI용 더미 데이터)
+  const [participants, setParticipants] = useState<Participant[]>([
+    {
+      id: 1,
+      username: "다영",
+      timerStatus: "STUDYING",
+      statusMessage: "열심히 공부 중입니다! 💪",
+      isCreator: true,
+    },
+    {
+      id: 2,
+      username: user?.username || "사용자",
+      timerStatus: "STUDYING",
+      statusMessage: "오늘도 화이팅!",
+    },
+    {
+      id: 3,
+      username: "민수",
+      timerStatus: "RESTING",
+      statusMessage: "잠시 휴식 중...",
+    },
+    {
+      id: 4,
+      username: "지은",
+      timerStatus: "STUDYING",
+      statusMessage: "알고리즘 문제 풀고 있어요",
+    },
+  ]);
+
+  // 상태 메시지 편집 관련
+  const [isEditingStatusMessage, setIsEditingStatusMessage] = useState(false);
+  const [statusMessageInput, setStatusMessageInput] = useState("");
+
+  // 상태 메시지 저장
+  const handleSaveStatusMessage = () => {
+    if (statusMessageInput.length > 50) {
+      toast({
+        title: "오류",
+        description: "상태 메시지는 50자 이내로 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 본인 참여자의 상태 메시지 업데이트
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.username === user?.username
+          ? { ...p, statusMessage: statusMessageInput.trim() || undefined }
+          : p
+      )
+    );
+
+    setIsEditingStatusMessage(false);
+    toast({
+      title: "상태 메시지 업데이트",
+      description: "상태 메시지가 변경되었습니다.",
+    });
+  };
+
+  // 상태 메시지 편집 시작
+  const handleStartEditStatusMessage = () => {
+    const currentUser = participants.find((p) => p.username === user?.username);
+    setStatusMessageInput(currentUser?.statusMessage || "");
+    setIsEditingStatusMessage(true);
+  };
+
+  // 상태 메시지 편집 취소
+  const handleCancelEditStatusMessage = () => {
+    setIsEditingStatusMessage(false);
+    setStatusMessageInput("");
+  };
+
+  // Question mode
+  const [isQuestionMode, setIsQuestionMode] = useState(false);
+  const [questionImage, setQuestionImage] = useState<string | null>(null);
+  const [questionFileName, setQuestionFileName] = useState<string | null>(null);
+
+  // Answer input for specific question
+  const [answerInputs, setAnswerInputs] = useState<Record<string, string>>({});
+
+  // Question list popover
+  const [questionListOpen, setQuestionListOpen] = useState(false);
+=======
   // Participants
   const [participants, setParticipants] = useState<StudyRoomParticipant[]>([]);
+>>>>>>> origin/fronted
 
   // Question mode
   const [isQuestionMode, setIsQuestionMode] = useState(false);
@@ -158,33 +256,29 @@ const GroupStudyRoomPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [user, roomId]);
 
-  // ✅ 참여자 목록 폴링 (5초마다)
-  useEffect(() => {
-    if (!user || !roomId || !hasJoinedRef.current) return;
-
-    const loadParticipants = async () => {
-      try {
-        const participantList = await studyRoomAPI.getParticipants(roomId);
-        setParticipants(participantList);
-      } catch (error) {
-        console.error("참여자 조회 실패:", error);
-      }
-    };
-
-    loadParticipants();
-    const interval = setInterval(loadParticipants, 5000);
-
-    return () => clearInterval(interval);
-  }, [user, roomId]);
-
   // ✅ 방 입장 처리 (타이머 시작 포함)
   useEffect(() => {
     if (!user || !roomId || hasJoinedRef.current) return;
 
+    // 타임아웃 설정 (30초 후 자동으로 로딩 해제)
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error("입장 타임아웃 - 로딩 상태 강제 해제");
+        setLoading(false);
+        toast({
+          title: "입장 시간 초과",
+          description: "방 입장에 시간이 너무 오래 걸립니다. 다시 시도해주세요.",
+          variant: "destructive",
+        });
+      }
+    }, 30000);
+
     const joinRoom = async () => {
       try {
         setLoading(true);
-        console.log("Attempting to join group study room:", roomId);
+        console.log("=== 방 입장 시작 ===");
+        console.log("roomId:", roomId);
+        console.log("user:", user);
 
         // 1. 방 정보 로드
         let roomData: GroupStudyRoom;
@@ -194,33 +288,44 @@ const GroupStudyRoomPage: React.FC = () => {
           setRoomInfo(roomData);
         } catch (error: any) {
           console.error("Failed to get room info:", error);
+          clearTimeout(timeoutId);
+          setLoading(false);
+          setError(error?.message || "방 정보를 불러올 수 없습니다.");
           toast({
             title: "오류",
-            description: "방 정보를 불러올 수 없습니다.",
+            description: error?.message || "방 정보를 불러올 수 없습니다.",
             variant: "destructive",
           });
-          navigate("/group-study");
+          // 에러 발생 시 3초 후 자동으로 그룹 스터디 페이지로 이동
+          setTimeout(() => {
+            navigate("/group-study");
+          }, 3000);
           return;
         }
 
-        // 2. 방 참여 (JWT 자동)
+        // 2. 방 참여 (JWT 자동) - 500 에러는 무시하고 계속 진행
+        // 방 정보가 성공적으로 로드되었으므로, join 실패해도 계속 진행
         try {
           await studyRoomAPI.joinRoom(roomId);
           console.log("Successfully joined room via API");
         } catch (joinError: any) {
-          // 500 에러 또는 이미 참여 중인 경우
-          if (
-            joinError?.message?.includes("이미") ||
-            joinError?.message?.includes("already") ||
-            joinError?.message?.includes("500")
-          ) {
-            console.log("Already in room or duplicate join, continuing...");
-          } else {
-            throw joinError;
-          }
+          // 500 에러는 이미 참여 중이거나 중복 참여일 수 있으므로 무시하고 계속 진행
+          const errorMessage = String(joinError?.message || "");
+          const errorStatus = joinError?.status;
+          
+          console.log("방 참여 요청 결과 (계속 진행):", {
+            message: errorMessage,
+            status: errorStatus,
+            error: joinError
+          });
+          
+          // 모든 에러에 대해 계속 진행 (이미 참여 중일 수 있음)
+          // 방 정보가 성공적으로 로드되었으므로 입장 가능
         }
 
-        // 3. ✅ 타이머 시작
+        hasJoinedRef.current = true;
+
+        // 3. ✅ 타이머 시작 (에러가 나도 계속 진행)
         try {
           const isCreator = roomData.creatorId === Number(user.id);
           const timerResponse = await timerAPI.startTimer(
@@ -231,38 +336,43 @@ const GroupStudyRoomPage: React.FC = () => {
           console.log("Timer started:", timerResponse);
         } catch (timerError: any) {
           console.error("타이머 시작 실패:", timerError);
-          toast({
-            title: "알림",
-            description: "타이머 시작에 실패했지만 방에는 입장했습니다.",
-            variant: "default",
-          });
+          // 타이머 실패해도 계속 진행
         }
 
-        hasJoinedRef.current = true;
-
         addSystemMessage(`${user.username}님이 입장했습니다.`);
+
+        clearTimeout(timeoutId);
+        console.log("=== 방 입장 완료 ===");
+        console.log("roomInfo:", roomData);
+        setLoading(false);
 
         toast({
           title: "입장 완료",
           description: `${roomData.roomName}에 입장했습니다.`,
         });
-
-        setLoading(false);
       } catch (error: any) {
         console.error("Failed to join room:", error);
-
+        clearTimeout(timeoutId);
+        setLoading(false);
+        setError(error?.message || "방 입장에 실패했습니다.");
         toast({
           title: "입장 실패",
           description: error?.message || "방 입장에 실패했습니다.",
           variant: "destructive",
         });
-
-        setLoading(false);
-        navigate("/group-study");
+        // 에러 발생 시 3초 후 자동으로 그룹 스터디 페이지로 이동
+        setTimeout(() => {
+          navigate("/group-study");
+        }, 3000);
       }
     };
 
     joinRoom();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, roomId, navigate]);
 
   // 브라우저 이벤트 처리
@@ -559,12 +669,60 @@ const GroupStudyRoomPage: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
+  // 로그인 확인
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">로그인이 필요합니다.</p>
+          <Button onClick={() => navigate("/login")}>로그인하기</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // roomId 확인
+  if (!roomId) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">방 ID가 없습니다.</p>
+          <Button onClick={() => navigate("/group-study")}>그룹 스터디로 돌아가기</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">오류가 발생했습니다</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-x-3">
+            <Button onClick={() => navigate("/group-study")}>
+              그룹 스터디로 돌아가기
+            </Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              새로고침
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 mt-4">
+            3초 후 자동으로 그룹 스터디 페이지로 이동합니다...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading || !roomInfo) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">스터디룸에 입장하는 중...</p>
+          <p className="text-gray-600 mb-2">스터디룸에 입장하는 중...</p>
+          <p className="text-xs text-gray-400">잠시만 기다려주세요</p>
         </div>
       </div>
     );
@@ -579,89 +737,6 @@ const GroupStudyRoomPage: React.FC = () => {
             {roomInfo.roomName}
           </h1>
           <Badge variant="secondary">{roomInfo.studyField}</Badge>
-
-          {/* 참여자 수 팝오버 */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                <Users className="w-4 h-4 mr-2" />
-                <span className="font-medium">
-                  {participants.length}/{roomInfo.maxMembers}
-                </span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-4">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm text-gray-900">
-                  👥 참여자 목록
-                </h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {participants.map((participant) => (
-                    <div
-                      key={participant.memberId}
-                      className={`flex items-center space-x-3 p-2 rounded-lg ${
-                        participant.memberId === roomInfo.creatorId
-                          ? "bg-yellow-50 border border-yellow-200"
-                          : participant.username === user?.username
-                          ? "bg-indigo-50 border border-indigo-200"
-                          : "bg-gray-50"
-                      }`}
-                    >
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={participant.profileImageUrl} />
-                        <AvatarFallback
-                          className={
-                            participant.memberId === roomInfo.creatorId
-                              ? "bg-yellow-500 text-white"
-                              : participant.username === user?.username
-                              ? "bg-indigo-500 text-white"
-                              : "bg-gray-400 text-white"
-                          }
-                        >
-                          {participant.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {participant.username}
-                          </span>
-                          {participant.memberId === roomInfo.creatorId && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-yellow-100"
-                            >
-                              방장
-                            </Badge>
-                          )}
-                          {participant.username === user?.username &&
-                            participant.memberId !== roomInfo.creatorId && (
-                              <Badge variant="secondary" className="text-xs">
-                                나
-                              </Badge>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              participant.timerStatus === "STUDYING"
-                                ? "bg-green-500"
-                                : "bg-orange-500"
-                            }`}
-                          ></span>
-                          <span className="text-xs text-gray-500">
-                            {participant.timerStatus === "STUDYING"
-                              ? "공부중"
-                              : "휴식중"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
           {/* 남은 시간 표시 */}
           {roomInfo.remainingMinutes && roomInfo.remainingMinutes > 0 && (
@@ -687,7 +762,7 @@ const GroupStudyRoomPage: React.FC = () => {
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex overflow-hidden">
         {/* 왼쪽: 채팅 */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* ✅ 상태 전환 + 타이머 */}
           <div className="border-b bg-white p-4">
             <div className="flex items-center gap-4">
@@ -1142,6 +1217,200 @@ const GroupStudyRoomPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 오른쪽: 참여자 목록 사이드바 (UI만) */}
+        {roomInfo && (
+          <div className="w-80 border-l bg-white flex flex-col">
+            <div className="p-4 border-b bg-gray-50">
+              <h3 className="font-semibold text-base text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                참여자 목록
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {participants.length}/{roomInfo.maxMembers}명 참여 중
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {participants.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">참여자가 없습니다</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {participants.map((participant) => {
+                    const isCreator = participant.isCreator || participant.id === roomInfo.creatorId;
+                    const isCurrentUser = participant.username === user?.username;
+
+                    return (
+                      <div
+                        key={participant.id}
+                        className={`flex items-start space-x-3 p-4 transition-colors ${
+                          isCreator
+                            ? "bg-yellow-50/50"
+                            : isCurrentUser
+                            ? "bg-indigo-50/50"
+                            : "bg-white hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <Avatar
+                            className={`w-12 h-12 ring-2 ring-offset-2 ring-offset-white ${
+                              isCreator
+                                ? "ring-yellow-500"
+                                : isCurrentUser
+                                ? "ring-indigo-500"
+                                : "ring-gray-300"
+                            }`}
+                          >
+                            <AvatarImage src={participant.profileImageUrl} />
+                            <AvatarFallback
+                              className={
+                                isCreator
+                                  ? "bg-yellow-500 text-white text-base font-semibold"
+                                  : isCurrentUser
+                                  ? "bg-indigo-500 text-white text-base font-semibold"
+                                  : "bg-gray-400 text-white text-base font-semibold"
+                              }
+                            >
+                              {participant.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* 상태 표시 점 */}
+                          <div
+                            className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
+                              participant.timerStatus === "STUDYING"
+                                ? "bg-green-500"
+                                : "bg-orange-500"
+                            }`}
+                            title={
+                              participant.timerStatus === "STUDYING"
+                                ? "공부중"
+                                : "휴식중"
+                            }
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-gray-900 truncate">
+                              {participant.username}
+                            </span>
+                            {isCreator && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200 flex-shrink-0"
+                              >
+                                방장
+                              </Badge>
+                            )}
+                            {isCurrentUser && !isCreator && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-indigo-100 text-indigo-800 flex-shrink-0"
+                              >
+                                나
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-1.5">
+                              {participant.timerStatus === "STUDYING" ? (
+                                <BookOpen className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <Coffee className="w-3.5 h-3.5 text-orange-600" />
+                              )}
+                              <span
+                                className={`text-xs font-medium ${
+                                  participant.timerStatus === "STUDYING"
+                                    ? "text-green-700"
+                                    : "text-orange-700"
+                                }`}
+                              >
+                                {participant.timerStatus === "STUDYING"
+                                  ? "공부중"
+                                  : "휴식중"}
+                              </span>
+                            </div>
+                          </div>
+                          {/* 상태 메시지 */}
+                          {isCurrentUser && isEditingStatusMessage ? (
+                            // 본인이고 편집 모드일 때
+                            <div className="mt-2 space-y-2">
+                              <Input
+                                value={statusMessageInput}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value.length <= 50) {
+                                    setStatusMessageInput(value);
+                                  }
+                                }}
+                                placeholder="상태 메시지를 입력하세요 (50자 이내)"
+                                className="text-xs h-8"
+                                maxLength={50}
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSaveStatusMessage();
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-400">
+                                  {statusMessageInput.length}/50
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={handleCancelEditStatusMessage}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={handleSaveStatusMessage}
+                                    disabled={statusMessageInput.trim().length === 0}
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-green-600" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // 일반 표시 모드
+                            <div className="mt-1 flex items-start justify-between gap-2">
+                              {participant.statusMessage ? (
+                                <div className="text-xs text-gray-600 line-clamp-2 flex-1">
+                                  {participant.statusMessage}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-400 italic flex-1">
+                                  상태 메시지가 없습니다
+                                </div>
+                              )}
+                              {isCurrentUser && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 flex-shrink-0"
+                                  onClick={handleStartEditStatusMessage}
+                                >
+                                  <Edit2 className="w-3 h-3 text-gray-400" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 나가기 다이얼로그 */}
