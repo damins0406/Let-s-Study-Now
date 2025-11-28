@@ -73,6 +73,7 @@ const GroupStudy: React.FC = () => {
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [removeMemberDialogOpen, setRemoveMemberDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(null);
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<number | "all">("all");
 
   const [newGroup, setNewGroup] = useState({
     groupName: "",
@@ -754,73 +755,157 @@ const GroupStudy: React.FC = () => {
 
           <TabsContent value="rooms">
             <div className="space-y-6">
-              {myGroups.map((group) => {
-                const rooms = groupRooms[group.id] || [];
+              {/* 그룹 필터 */}
+              {myGroups.length > 1 && (
+                <div className="flex items-center gap-3 mb-4">
+                  <Label className="text-sm font-medium text-gray-700">
+                    그룹 필터:
+                  </Label>
+                  <select
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={selectedGroupFilter}
+                    onChange={(e) =>
+                      setSelectedGroupFilter(
+                        e.target.value === "all"
+                          ? "all"
+                          : Number(e.target.value)
+                      )
+                    }
+                  >
+                    <option value="all">전체 그룹</option>
+                    {myGroups.map((group) => (
+                      <option key={group.id} value={group.id}>
+                        {group.groupName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* 스터디 목록 */}
+              {(() => {
+                // 필터링된 그룹 목록
+                const filteredGroups =
+                  selectedGroupFilter === "all"
+                    ? myGroups
+                    : myGroups.filter((g) => g.id === selectedGroupFilter);
+
+                // 모든 스터디룸을 평탄화하여 표시
+                const allRooms: Array<GroupStudyRoom & { groupName: string }> = [];
+                filteredGroups.forEach((group) => {
+                  const rooms = groupRooms[group.id] || [];
+                  rooms.forEach((room) => {
+                    allRooms.push({ ...room, groupName: group.groupName });
+                  });
+                });
+
+                if (allRooms.length === 0) {
+                  return (
+                    <Card>
+                      <CardContent className="text-center py-12">
+                        <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          활성 스터디 방이 없습니다
+                        </h3>
+                        <p className="text-gray-500 mb-4">
+                          {selectedGroupFilter === "all"
+                            ? "새로운 스터디 방을 만들어보세요!"
+                            : "선택한 그룹에 활성 스터디 방이 없습니다."}
+                        </p>
+                        {selectedGroupFilter === "all" && (
+                          <Button onClick={() => setCreateRoomDialogOpen(true)}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            스터디 방 만들기
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
                 return (
-                  <div key={group.id}>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      {group.groupName} 스터디 방
-                    </h3>
-                    {rooms.length === 0 ? (
-                      <Card>
-                        <CardContent className="text-center py-8">
-                          <BookOpen className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500">
-                            {group.groupName}에 활성 스터디 방이 없습니다
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {rooms.map((room) => (
-                          <Card
-                            key={room.id}
-                            className="hover:shadow-md transition-shadow"
-                          >
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base">
-                                {room.roomName}
-                              </CardTitle>
-                              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                                <span className="flex items-center">
-                                  <Users className="w-4 h-4 mr-1" />
-                                  {room.currentMembers || 0}/{room.maxMembers}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allRooms.map((room) => {
+                      const isFull = room.currentMembers >= room.maxMembers;
+                      return (
+                        <Card
+                          key={room.id}
+                          className={`hover:shadow-md transition-shadow ${
+                            isFull ? "opacity-75" : ""
+                          }`}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="mb-2">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs mb-2 bg-indigo-100 text-indigo-700"
+                              >
+                                {room.groupName}
+                              </Badge>
+                            </div>
+                            <CardTitle className="text-base">
+                              {room.roomName}
+                            </CardTitle>
+                            <div className="flex flex-col gap-2 mt-2 text-sm text-gray-600">
+                              <div className="flex items-center">
+                                <Users className="w-4 h-4 mr-1 text-gray-500" />
+                                <span>
+                                  {room.currentMembers || 0}/{room.maxMembers}명
                                 </span>
-                                <span className="flex items-center">
-                                  <Clock className="w-4 h-4 mr-1" />
+                              </div>
+                              <div className="flex items-center">
+                                <Clock className="w-4 h-4 mr-1 text-gray-500" />
+                                <span>
                                   {room.remainingMinutes
-                                    ? `${room.remainingMinutes}분 남음`
+                                    ? `남은 시간: ${room.remainingMinutes}분`
                                     : "진행 중"}
                                 </span>
                               </div>
-                            </CardHeader>
+                            </div>
+                          </CardHeader>
 
-                            <CardContent className="pt-0">
-                              <div className="flex justify-between items-center">
-                                <Badge variant="outline" className="text-xs">
-                                  {room.studyField}
-                                </Badge>
+                          <CardContent className="pt-0">
+                            <div className="flex flex-col gap-3">
+                              <Badge variant="outline" className="text-xs w-fit">
+                                {room.studyField}
+                              </Badge>
+                              {isFull ? (
+                                <div className="flex flex-col gap-2">
+                                  <div className="px-3 py-2 bg-red-50 border border-red-200 rounded-md text-center">
+                                    <p className="text-sm font-medium text-red-700">
+                                      입장 불가
+                                    </p>
+                                    <p className="text-xs text-red-600 mt-1">
+                                      최대 인원에 도달했습니다
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled
+                                    className="w-full"
+                                  >
+                                    입장 불가
+                                  </Button>
+                                </div>
+                              ) : (
                                 <Button
                                   size="sm"
                                   onClick={() => handleJoinRoom(room.id)}
-                                  disabled={
-                                    loading ||
-                                    room.currentMembers >= room.maxMembers
-                                  }
+                                  disabled={loading}
+                                  className="w-full"
                                 >
-                                  {room.currentMembers >= room.maxMembers
-                                    ? "정원 초과"
-                                    : "입장하기"}
+                                  입장하기
                                 </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 );
-              })}
+              })()}
             </div>
           </TabsContent>
         </Tabs>
