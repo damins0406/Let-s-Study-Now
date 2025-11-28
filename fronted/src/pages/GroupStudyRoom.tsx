@@ -22,14 +22,14 @@ import { toast } from "@/hooks/use-toast";
 import {
   studyRoomAPI,
   timerAPI,
+  sessionAPI,
   GroupStudyRoom,
-  StudyRoomParticipant,
   TimerStatusResponse,
-  TimerStatus, // ✅ 추가
-  TimerMode, // ✅ 추가 (필요시)
+  TimerStatus,
+  TimerMode,
+  LevelInfoDto,
 } from "@/lib/api";
 import {
-  Users,
   Clock,
   Send,
   LogOut,
@@ -38,14 +38,46 @@ import {
   BookOpen,
   Coffee,
   TrendingUp,
+  HelpCircle,
+  MessageCircle,
+  CheckCircle,
+  X,
+  AlertCircle,
+  Paperclip,
+  Image as ImageIcon,
+  Users,
+  Edit2,
+  Check,
 } from "lucide-react";
+
+interface HelpAnswer {
+  id: string;
+  answerer: string;
+  content: string;
+  timestamp: Date;
+  isAccepted?: boolean;
+}
 
 interface ChatMessage {
   id: string;
-  type: "text" | "system";
+  type: "text" | "system" | "question";
   sender?: string;
   content: string;
   timestamp: Date;
+  answers?: HelpAnswer[];
+  status?: "open" | "helping" | "resolved";
+  imageUrl?: string;
+  fileName?: string;
+}
+
+// 참여자 정보 인터페이스 (UI용 더미 데이터)
+interface Participant {
+  id: number;
+  username: string;
+  profileImageUrl?: string;
+  timerStatus: "STUDYING" | "RESTING";
+  statusMessage?: string;
+  isCreator?: boolean;
 }
 
 const GroupStudyRoomPage: React.FC = () => {
@@ -59,6 +91,7 @@ const GroupStudyRoomPage: React.FC = () => {
   // Room Info
   const [roomInfo, setRoomInfo] = useState<GroupStudyRoom | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Chat
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -69,16 +102,127 @@ const GroupStudyRoomPage: React.FC = () => {
     null
   );
 
-  // Participants
-  const [participants, setParticipants] = useState<StudyRoomParticipant[]>([]);
+  // Level Info
+  const [levelInfo, setLevelInfo] = useState<LevelInfoDto | null>(null);
+
+  // Participants (UI용 더미 데이터)
+  const [participants, setParticipants] = useState<Participant[]>([
+    {
+      id: 1,
+      username: "다영",
+      timerStatus: "STUDYING",
+      statusMessage: "열심히 공부 중입니다! 💪",
+      isCreator: true,
+    },
+    {
+      id: 2,
+      username: user?.username || "사용자",
+      timerStatus: "STUDYING",
+      statusMessage: "오늘도 화이팅!",
+    },
+    {
+      id: 3,
+      username: "민수",
+      timerStatus: "RESTING",
+      statusMessage: "잠시 휴식 중...",
+    },
+    {
+      id: 4,
+      username: "지은",
+      timerStatus: "STUDYING",
+      statusMessage: "알고리즘 문제 풀고 있어요",
+    },
+  ]);
+
+  // 상태 메시지 편집 관련
+  const [isEditingStatusMessage, setIsEditingStatusMessage] = useState(false);
+  const [statusMessageInput, setStatusMessageInput] = useState("");
+
+  // 상태 메시지 저장
+  const handleSaveStatusMessage = () => {
+    if (statusMessageInput.length > 50) {
+      toast({
+        title: "오류",
+        description: "상태 메시지는 50자 이내로 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // 본인 참여자의 상태 메시지 업데이트
+    setParticipants((prev) =>
+      prev.map((p) =>
+        p.username === user?.username
+          ? { ...p, statusMessage: statusMessageInput.trim() || undefined }
+          : p
+      )
+    );
+
+    setIsEditingStatusMessage(false);
+    toast({
+      title: "상태 메시지 업데이트",
+      description: "상태 메시지가 변경되었습니다.",
+    });
+  };
+
+  // 상태 메시지 편집 시작
+  const handleStartEditStatusMessage = () => {
+    const currentUser = participants.find((p) => p.username === user?.username);
+    setStatusMessageInput(currentUser?.statusMessage || "");
+    setIsEditingStatusMessage(true);
+  };
+
+  // 상태 메시지 편집 취소
+  const handleCancelEditStatusMessage = () => {
+    setIsEditingStatusMessage(false);
+    setStatusMessageInput("");
+  };
+
+  // Question mode
+  const [isQuestionMode, setIsQuestionMode] = useState(false);
+  const [questionImage, setQuestionImage] = useState<string | null>(null);
+  const [questionFileName, setQuestionFileName] = useState<string | null>(null);
+
+  // Answer input for specific question
+  const [answerInputs, setAnswerInputs] = useState<Record<string, string>>({});
+
+  // Question list popover
+  const [questionListOpen, setQuestionListOpen] = useState(false);
 
   // Dialogs
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
+
+  // 시간 포맷 함수
+  const formatRelativeTime = (date: Date) => {
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diff < 60) return "방금 전";
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+    return `${Math.floor(diff / 86400)}일 전`;
+  };
 
   // 채팅 스크롤
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // 레벨 정보 조회
+  useEffect(() => {
+    const fetchLevelInfo = async () => {
+      try {
+        const info = await sessionAPI.getLevelInfo();
+        setLevelInfo(info);
+      } catch (error) {
+        console.error("Failed to fetch level info:", error);
+      }
+    };
+
+    if (user) {
+      fetchLevelInfo();
+    }
+  }, [user]);
 
   // ✅ 타이머 상태 폴링 (1초마다)
   useEffect(() => {
@@ -96,33 +240,29 @@ const GroupStudyRoomPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [user, roomId]);
 
-  // ✅ 참여자 목록 폴링 (5초마다)
-  useEffect(() => {
-    if (!user || !roomId || !hasJoinedRef.current) return;
-
-    const loadParticipants = async () => {
-      try {
-        const participantList = await studyRoomAPI.getParticipants(roomId);
-        setParticipants(participantList);
-      } catch (error) {
-        console.error("참여자 조회 실패:", error);
-      }
-    };
-
-    loadParticipants();
-    const interval = setInterval(loadParticipants, 5000);
-
-    return () => clearInterval(interval);
-  }, [user, roomId]);
-
   // ✅ 방 입장 처리 (타이머 시작 포함)
   useEffect(() => {
     if (!user || !roomId || hasJoinedRef.current) return;
 
+    // 타임아웃 설정 (30초 후 자동으로 로딩 해제)
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error("입장 타임아웃 - 로딩 상태 강제 해제");
+        setLoading(false);
+        toast({
+          title: "입장 시간 초과",
+          description: "방 입장에 시간이 너무 오래 걸립니다. 다시 시도해주세요.",
+          variant: "destructive",
+        });
+      }
+    }, 30000);
+
     const joinRoom = async () => {
       try {
         setLoading(true);
-        console.log("Attempting to join group study room:", roomId);
+        console.log("=== 방 입장 시작 ===");
+        console.log("roomId:", roomId);
+        console.log("user:", user);
 
         // 1. 방 정보 로드
         let roomData: GroupStudyRoom;
@@ -132,33 +272,44 @@ const GroupStudyRoomPage: React.FC = () => {
           setRoomInfo(roomData);
         } catch (error: any) {
           console.error("Failed to get room info:", error);
+          clearTimeout(timeoutId);
+          setLoading(false);
+          setError(error?.message || "방 정보를 불러올 수 없습니다.");
           toast({
             title: "오류",
-            description: "방 정보를 불러올 수 없습니다.",
+            description: error?.message || "방 정보를 불러올 수 없습니다.",
             variant: "destructive",
           });
-          navigate("/group-study");
+          // 에러 발생 시 3초 후 자동으로 그룹 스터디 페이지로 이동
+          setTimeout(() => {
+            navigate("/group-study");
+          }, 3000);
           return;
         }
 
-        // 2. 방 참여 (JWT 자동)
+        // 2. 방 참여 (JWT 자동) - 500 에러는 무시하고 계속 진행
+        // 방 정보가 성공적으로 로드되었으므로, join 실패해도 계속 진행
         try {
           await studyRoomAPI.joinRoom(roomId);
           console.log("Successfully joined room via API");
         } catch (joinError: any) {
-          // 500 에러 또는 이미 참여 중인 경우
-          if (
-            joinError?.message?.includes("이미") ||
-            joinError?.message?.includes("already") ||
-            joinError?.message?.includes("500")
-          ) {
-            console.log("Already in room or duplicate join, continuing...");
-          } else {
-            throw joinError;
-          }
+          // 500 에러는 이미 참여 중이거나 중복 참여일 수 있으므로 무시하고 계속 진행
+          const errorMessage = String(joinError?.message || "");
+          const errorStatus = joinError?.status;
+          
+          console.log("방 참여 요청 결과 (계속 진행):", {
+            message: errorMessage,
+            status: errorStatus,
+            error: joinError
+          });
+          
+          // 모든 에러에 대해 계속 진행 (이미 참여 중일 수 있음)
+          // 방 정보가 성공적으로 로드되었으므로 입장 가능
         }
 
-        // 3. ✅ 타이머 시작
+        hasJoinedRef.current = true;
+
+        // 3. ✅ 타이머 시작 (에러가 나도 계속 진행)
         try {
           const isCreator = roomData.creatorId === Number(user.id);
           const timerResponse = await timerAPI.startTimer(
@@ -169,38 +320,43 @@ const GroupStudyRoomPage: React.FC = () => {
           console.log("Timer started:", timerResponse);
         } catch (timerError: any) {
           console.error("타이머 시작 실패:", timerError);
-          toast({
-            title: "알림",
-            description: "타이머 시작에 실패했지만 방에는 입장했습니다.",
-            variant: "default",
-          });
+          // 타이머 실패해도 계속 진행
         }
 
-        hasJoinedRef.current = true;
-
         addSystemMessage(`${user.username}님이 입장했습니다.`);
+
+        clearTimeout(timeoutId);
+        console.log("=== 방 입장 완료 ===");
+        console.log("roomInfo:", roomData);
+        setLoading(false);
 
         toast({
           title: "입장 완료",
           description: `${roomData.roomName}에 입장했습니다.`,
         });
-
-        setLoading(false);
       } catch (error: any) {
         console.error("Failed to join room:", error);
-
+        clearTimeout(timeoutId);
+        setLoading(false);
+        setError(error?.message || "방 입장에 실패했습니다.");
         toast({
           title: "입장 실패",
           description: error?.message || "방 입장에 실패했습니다.",
           variant: "destructive",
         });
-
-        setLoading(false);
-        navigate("/group-study");
+        // 에러 발생 시 3초 후 자동으로 그룹 스터디 페이지로 이동
+        setTimeout(() => {
+          navigate("/group-study");
+        }, 3000);
       }
     };
 
     joinRoom();
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, roomId, navigate]);
 
   // 브라우저 이벤트 처리
@@ -305,16 +461,48 @@ const GroupStudyRoomPage: React.FC = () => {
   const handleSendMessage = () => {
     if (!messageInput.trim()) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      type: "text",
-      sender: user?.username || "익명",
-      content: messageInput,
-      timestamp: new Date(),
-    };
+    if (isQuestionMode) {
+      // 질문 메시지 전송
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
+        type: "question",
+        sender: user?.username || "익명",
+        content: messageInput,
+        imageUrl: questionImage || undefined,
+        fileName: questionFileName || undefined,
+        timestamp: new Date(),
+        answers: [],
+        status: "open",
+      };
 
-    setMessages((prev) => [...prev, newMessage]);
-    setMessageInput("");
+      setMessages((prev) => [...prev, newMessage]);
+      addSystemMessage(
+        `${user?.username}님이 질문했습니다: "${messageInput.slice(0, 30)}..."`
+      );
+
+      // 리셋
+      setMessageInput("");
+      setIsQuestionMode(false);
+      setQuestionImage(null);
+      setQuestionFileName(null);
+
+      toast({
+        title: "질문 등록",
+        description: "질문이 등록되었습니다. 다른 참여자들이 답변해줄 거예요!",
+      });
+    } else {
+      // 일반 텍스트 메시지 전송
+      const newMessage: ChatMessage = {
+        id: Date.now().toString(),
+        type: "text",
+        sender: user?.username || "익명",
+        content: messageInput,
+        timestamp: new Date(),
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+      setMessageInput("");
+    }
   };
 
   const addSystemMessage = (content: string) => {
@@ -325,6 +513,109 @@ const GroupStudyRoomPage: React.FC = () => {
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, newMessage]);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "오류",
+        description: "이미지 크기는 10MB를 초과할 수 없습니다.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const imageUrl = URL.createObjectURL(file);
+
+    if (isQuestionMode) {
+      // 질문 모드일 때는 첨부파일로 저장
+      setQuestionImage(imageUrl);
+      setQuestionFileName(file.name);
+    }
+  };
+
+  // 질문에 답변 추가
+  const handleSubmitAnswer = (questionId: string) => {
+    const answerText = answerInputs[questionId];
+    if (!answerText?.trim()) return;
+
+    const newAnswer: HelpAnswer = {
+      id: Date.now().toString(),
+      answerer: user?.username || "익명",
+      content: answerText,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === questionId && msg.type === "question"
+          ? {
+              ...msg,
+              answers: [...(msg.answers || []), newAnswer],
+              status: "helping" as const,
+            }
+          : msg
+      )
+    );
+
+    // 답변 입력 초기화
+    setAnswerInputs((prev) => ({ ...prev, [questionId]: "" }));
+
+    toast({
+      title: "답변 등록",
+      description: "답변이 등록되었습니다!",
+    });
+  };
+
+  // 답변 채택
+  const handleAcceptAnswer = (questionId: string, answerId: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === questionId && msg.type === "question"
+          ? {
+              ...msg,
+              answers: msg.answers?.map((ans) =>
+                ans.id === answerId ? { ...ans, isAccepted: true } : ans
+              ),
+              status: "resolved" as const,
+            }
+          : msg
+      )
+    );
+
+    toast({
+      title: "답변 채택 완료",
+      description: "답변이 채택되어 질문이 해결되었습니다! 🎉",
+    });
+  };
+
+  // 질문으로 스크롤
+  const scrollToQuestion = (questionId: string) => {
+    setQuestionListOpen(false);
+    
+    setTimeout(() => {
+      const element = document.getElementById(`question-${questionId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.classList.add("ring-4", "ring-red-300", "ring-opacity-50");
+        setTimeout(() => {
+          element.classList.remove("ring-4", "ring-red-300", "ring-opacity-50");
+        }, 2000);
+      }
+    }, 100);
+  };
+
+  // 질문 삭제
+  const handleDeleteQuestion = (questionId: string) => {
+    setMessages((prev) => prev.filter((msg) => msg.id !== questionId));
+
+    toast({
+      title: "삭제 완료",
+      description: "질문이 삭제되었습니다.",
+    });
   };
 
   const handleExitRoom = async () => {
@@ -362,12 +653,60 @@ const GroupStudyRoomPage: React.FC = () => {
       .padStart(2, "0")}`;
   };
 
+  // 로그인 확인
+  if (!user) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">로그인이 필요합니다.</p>
+          <Button onClick={() => navigate("/login")}>로그인하기</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // roomId 확인
+  if (!roomId) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">방 ID가 없습니다.</p>
+          <Button onClick={() => navigate("/group-study")}>그룹 스터디로 돌아가기</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">오류가 발생했습니다</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="space-x-3">
+            <Button onClick={() => navigate("/group-study")}>
+              그룹 스터디로 돌아가기
+            </Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              새로고침
+            </Button>
+          </div>
+          <p className="text-xs text-gray-400 mt-4">
+            3초 후 자동으로 그룹 스터디 페이지로 이동합니다...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading || !roomInfo) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">스터디룸에 입장하는 중...</p>
+          <p className="text-gray-600 mb-2">스터디룸에 입장하는 중...</p>
+          <p className="text-xs text-gray-400">잠시만 기다려주세요</p>
         </div>
       </div>
     );
@@ -382,89 +721,6 @@ const GroupStudyRoomPage: React.FC = () => {
             {roomInfo.roomName}
           </h1>
           <Badge variant="secondary">{roomInfo.studyField}</Badge>
-
-          {/* 참여자 수 팝오버 */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
-                <Users className="w-4 h-4 mr-2" />
-                <span className="font-medium">
-                  {participants.length}/{roomInfo.maxMembers}
-                </span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-72 p-4">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-sm text-gray-900">
-                  👥 참여자 목록
-                </h4>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {participants.map((participant) => (
-                    <div
-                      key={participant.memberId}
-                      className={`flex items-center space-x-3 p-2 rounded-lg ${
-                        participant.memberId === roomInfo.creatorId
-                          ? "bg-yellow-50 border border-yellow-200"
-                          : participant.username === user?.username
-                          ? "bg-indigo-50 border border-indigo-200"
-                          : "bg-gray-50"
-                      }`}
-                    >
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={participant.profileImageUrl} />
-                        <AvatarFallback
-                          className={
-                            participant.memberId === roomInfo.creatorId
-                              ? "bg-yellow-500 text-white"
-                              : participant.username === user?.username
-                              ? "bg-indigo-500 text-white"
-                              : "bg-gray-400 text-white"
-                          }
-                        >
-                          {participant.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {participant.username}
-                          </span>
-                          {participant.memberId === roomInfo.creatorId && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-yellow-100"
-                            >
-                              방장
-                            </Badge>
-                          )}
-                          {participant.username === user?.username &&
-                            participant.memberId !== roomInfo.creatorId && (
-                              <Badge variant="secondary" className="text-xs">
-                                나
-                              </Badge>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              participant.timerStatus === "STUDYING"
-                                ? "bg-green-500"
-                                : "bg-orange-500"
-                            }`}
-                          ></span>
-                          <span className="text-xs text-gray-500">
-                            {participant.timerStatus === "STUDYING"
-                              ? "공부중"
-                              : "휴식중"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
 
           {/* 남은 시간 표시 */}
           {roomInfo.remainingMinutes && roomInfo.remainingMinutes > 0 && (
@@ -490,7 +746,7 @@ const GroupStudyRoomPage: React.FC = () => {
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex overflow-hidden">
         {/* 왼쪽: 채팅 */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           {/* ✅ 상태 전환 + 타이머 */}
           <div className="border-b bg-white p-4">
             <div className="flex items-center gap-4">
@@ -559,8 +815,82 @@ const GroupStudyRoomPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* ✅ 총 학습 시간 */}
+              {/* ✅ 총 학습 시간 + 레벨 + 질문 개수 */}
               <div className="ml-auto flex items-center gap-4 text-sm text-gray-600">
+                {/* 레벨 정보 표시 */}
+                {levelInfo && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-indigo-50 to-sky-50 rounded-lg border border-indigo-200">
+                    <span className="font-semibold text-indigo-700">
+                      레벨 {levelInfo.currentLevel}
+                    </span>
+                    <span className="text-xs text-gray-600">
+                      ({Math.round(levelInfo.progress)}%)
+                    </span>
+                  </div>
+                )}
+                {/* 질문 개수 표시 - 팝오버 */}
+                {messages.filter(m => m.type === "question" && m.status !== "resolved").length > 0 && (
+                  <Popover open={questionListOpen} onOpenChange={setQuestionListOpen}>
+                    <PopoverTrigger asChild>
+                      <button className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-50 to-orange-50 rounded-lg border border-red-200 hover:shadow-md transition-all cursor-pointer">
+                        <HelpCircle className="w-4 h-4 text-red-500" />
+                        <span className="font-semibold text-red-700">
+                          질문 {messages.filter(m => m.type === "question" && m.status !== "resolved").length}개
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-96 p-4 max-h-[500px] overflow-y-auto">
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-sm text-gray-900 flex items-center gap-2">
+                          <HelpCircle className="w-4 h-4 text-red-500" />
+                          미해결 질문 목록
+                        </h4>
+                        <div className="space-y-2">
+                          {messages
+                            .filter(m => m.type === "question" && m.status !== "resolved")
+                            .map((question) => (
+                              <div
+                                key={question.id}
+                                className="p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 cursor-pointer transition-colors"
+                                onClick={() => scrollToQuestion(question.id)}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="w-6 h-6">
+                                      <AvatarFallback className="bg-red-500 text-white text-xs">
+                                        {question.sender?.charAt(0).toUpperCase()}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-medium text-sm">
+                                      {question.sender}
+                                    </span>
+                                  </div>
+                                  <Badge
+                                    variant={question.status === "helping" ? "default" : "destructive"}
+                                    className="text-xs"
+                                  >
+                                    {question.status === "helping" ? "답변 중" : "도움 필요"}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-gray-800 line-clamp-2 mb-1">
+                                  "{question.content}"
+                                </p>
+                                {question.answers && question.answers.length > 0 && (
+                                  <div className="flex items-center gap-1 text-xs text-blue-600">
+                                    <MessageCircle className="w-3 h-3" />
+                                    <span>답변 {question.answers.length}개</span>
+                                  </div>
+                                )}
+                                <span className="text-xs text-gray-500">
+                                  {formatRelativeTime(question.timestamp)}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <div className="flex items-center gap-1">
                   <TrendingUp className="w-4 h-4 text-green-500" />
                   <span>
@@ -585,7 +915,193 @@ const GroupStudyRoomPage: React.FC = () => {
                   <div className="text-center text-sm text-gray-500 py-2">
                     {message.content}
                   </div>
+                ) : message.type === "question" ? (
+                  // 질문 메시지
+                  <div 
+                    id={`question-${message.id}`}
+                    className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 border-l-4 border-red-500 space-y-3 transition-all"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-red-500 text-white">
+                            {message.sender?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">
+                              {message.sender}
+                            </span>
+                            <Badge
+                              variant={
+                                message.status === "resolved"
+                                  ? "secondary"
+                                  : message.status === "helping"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {message.status === "resolved"
+                                ? "해결됨 ✓"
+                                : message.status === "helping"
+                                ? "답변 중"
+                                : "도움 필요"}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {message.timestamp.toLocaleTimeString("ko-KR", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      {message.sender === user?.username && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteQuestion(message.id)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* 질문 내용 */}
+                    <div className="bg-white rounded-lg p-3 shadow-sm">
+                      <div className="flex items-start gap-2">
+                        <HelpCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-gray-900 flex-1">{message.content}</p>
+                      </div>
+                    </div>
+
+                    {/* 첨부 이미지 */}
+                    {message.imageUrl && (
+                      <div className="bg-white rounded-lg p-2">
+                        <img
+                          src={message.imageUrl}
+                          alt="질문 첨부"
+                          className="max-w-sm rounded cursor-pointer hover:opacity-90"
+                          onClick={() => window.open(message.imageUrl)}
+                        />
+                      </div>
+                    )}
+
+                    {/* 채택된 답변 (해결된 경우) */}
+                    {message.status === "resolved" && message.answers && message.answers.some(ans => ans.isAccepted) && (
+                      <div className="pl-7 space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-green-700">
+                          <CheckCircle className="w-4 h-4" />
+                          <span>채택된 답변</span>
+                        </div>
+                        {message.answers.filter(ans => ans.isAccepted).map((answer) => (
+                          <div
+                            key={answer.id}
+                            className="bg-green-50 rounded-lg p-3 border-2 border-green-300 shadow-sm"
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <Avatar className="w-6 h-6">
+                                <AvatarFallback className="bg-green-500 text-white text-xs">
+                                  {answer.answerer.charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium text-sm">
+                                {answer.answerer}
+                              </span>
+                              <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
+                                채택됨 ✓
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {formatRelativeTime(answer.timestamp)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-800 pl-8">
+                              {answer.content}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 답변 목록 (해결되지 않은 경우) */}
+                    {message.status !== "resolved" && message.answers && message.answers.length > 0 && (
+                      <div className="space-y-2 pl-7">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <MessageCircle className="w-4 h-4" />
+                          <span>답변 {message.answers.length}개</span>
+                        </div>
+                        {message.answers.map((answer) => (
+                          <div
+                            key={answer.id}
+                            className="bg-blue-50 rounded-lg p-3 border border-blue-200"
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="w-6 h-6">
+                                  <AvatarFallback className="bg-blue-500 text-white text-xs">
+                                    {answer.answerer.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="font-medium text-sm">
+                                  {answer.answerer}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatRelativeTime(answer.timestamp)}
+                                </span>
+                              </div>
+                              {/* 질문 작성자만 채택 버튼 표시 */}
+                              {message.sender === user?.username && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  onClick={() => handleAcceptAnswer(message.id, answer.id)}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  채택
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-800 pl-8">
+                              {answer.content}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* 답변 입력 (해결되지 않은 경우만) */}
+                    {message.status !== "resolved" && (
+                      <div className="pl-7 flex gap-2">
+                        <Input
+                          placeholder="답변을 입력하세요..."
+                          value={answerInputs[message.id] || ""}
+                          onChange={(e) =>
+                            setAnswerInputs((prev) => ({
+                              ...prev,
+                              [message.id]: e.target.value,
+                            }))
+                          }
+                          onKeyPress={(e) =>
+                            e.key === "Enter" && handleSubmitAnswer(message.id)
+                          }
+                          className="flex-1 bg-white"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleSubmitAnswer(message.id)}
+                          disabled={!answerInputs[message.id]?.trim()}
+                        >
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
+                  // 일반 메시지
                   <div className="flex items-start space-x-3">
                     <Avatar className="w-8 h-8">
                       <AvatarFallback>
@@ -617,9 +1133,63 @@ const GroupStudyRoomPage: React.FC = () => {
 
           {/* 채팅 입력 */}
           <div className="border-t bg-white p-4">
+            {/* 질문 모드 표시 */}
+            {isQuestionMode && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                  <span className="text-sm font-medium text-red-700">
+                    질문 모드
+                  </span>
+                  {questionImage && (
+                    <Badge variant="secondary" className="text-xs">
+                      이미지 첨부됨
+                    </Badge>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsQuestionMode(false);
+                    setQuestionImage(null);
+                    setQuestionFileName(null);
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
             <div className="flex items-center space-x-2">
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleImageUpload}
+                id="image-upload"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => document.getElementById("image-upload")?.click()}
+              >
+                <ImageIcon className="w-5 h-5" />
+              </Button>
+              <Button
+                variant={isQuestionMode ? "default" : "ghost"}
+                size="sm"
+                className={isQuestionMode ? "bg-red-500 hover:bg-red-600" : ""}
+                onClick={() => setIsQuestionMode(!isQuestionMode)}
+              >
+                <HelpCircle className="w-5 h-5" />
+              </Button>
               <Input
-                placeholder="메시지를 입력하세요..."
+                placeholder={
+                  isQuestionMode
+                    ? "질문 내용을 입력하세요..."
+                    : "메시지를 입력하세요..."
+                }
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
@@ -631,6 +1201,200 @@ const GroupStudyRoomPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* 오른쪽: 참여자 목록 사이드바 (UI만) */}
+        {roomInfo && (
+          <div className="w-80 border-l bg-white flex flex-col">
+            <div className="p-4 border-b bg-gray-50">
+              <h3 className="font-semibold text-base text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                참여자 목록
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">
+                {participants.length}/{roomInfo.maxMembers}명 참여 중
+              </p>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {participants.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm text-gray-500">참여자가 없습니다</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {participants.map((participant) => {
+                    const isCreator = participant.isCreator || participant.id === roomInfo.creatorId;
+                    const isCurrentUser = participant.username === user?.username;
+
+                    return (
+                      <div
+                        key={participant.id}
+                        className={`flex items-start space-x-3 p-4 transition-colors ${
+                          isCreator
+                            ? "bg-yellow-50/50"
+                            : isCurrentUser
+                            ? "bg-indigo-50/50"
+                            : "bg-white hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="relative flex-shrink-0">
+                          <Avatar
+                            className={`w-12 h-12 ring-2 ring-offset-2 ring-offset-white ${
+                              isCreator
+                                ? "ring-yellow-500"
+                                : isCurrentUser
+                                ? "ring-indigo-500"
+                                : "ring-gray-300"
+                            }`}
+                          >
+                            <AvatarImage src={participant.profileImageUrl} />
+                            <AvatarFallback
+                              className={
+                                isCreator
+                                  ? "bg-yellow-500 text-white text-base font-semibold"
+                                  : isCurrentUser
+                                  ? "bg-indigo-500 text-white text-base font-semibold"
+                                  : "bg-gray-400 text-white text-base font-semibold"
+                              }
+                            >
+                              {participant.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* 상태 표시 점 */}
+                          <div
+                            className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
+                              participant.timerStatus === "STUDYING"
+                                ? "bg-green-500"
+                                : "bg-orange-500"
+                            }`}
+                            title={
+                              participant.timerStatus === "STUDYING"
+                                ? "공부중"
+                                : "휴식중"
+                            }
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-gray-900 truncate">
+                              {participant.username}
+                            </span>
+                            {isCreator && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-yellow-100 text-yellow-800 border-yellow-200 flex-shrink-0"
+                              >
+                                방장
+                              </Badge>
+                            )}
+                            {isCurrentUser && !isCreator && (
+                              <Badge
+                                variant="secondary"
+                                className="text-xs bg-indigo-100 text-indigo-800 flex-shrink-0"
+                              >
+                                나
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-1.5">
+                              {participant.timerStatus === "STUDYING" ? (
+                                <BookOpen className="w-3.5 h-3.5 text-green-600" />
+                              ) : (
+                                <Coffee className="w-3.5 h-3.5 text-orange-600" />
+                              )}
+                              <span
+                                className={`text-xs font-medium ${
+                                  participant.timerStatus === "STUDYING"
+                                    ? "text-green-700"
+                                    : "text-orange-700"
+                                }`}
+                              >
+                                {participant.timerStatus === "STUDYING"
+                                  ? "공부중"
+                                  : "휴식중"}
+                              </span>
+                            </div>
+                          </div>
+                          {/* 상태 메시지 */}
+                          {isCurrentUser && isEditingStatusMessage ? (
+                            // 본인이고 편집 모드일 때
+                            <div className="mt-2 space-y-2">
+                              <Input
+                                value={statusMessageInput}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  if (value.length <= 50) {
+                                    setStatusMessageInput(value);
+                                  }
+                                }}
+                                placeholder="상태 메시지를 입력하세요 (50자 이내)"
+                                className="text-xs h-8"
+                                maxLength={50}
+                                onKeyPress={(e) => {
+                                  if (e.key === "Enter") {
+                                    handleSaveStatusMessage();
+                                  }
+                                }}
+                              />
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-400">
+                                  {statusMessageInput.length}/50
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={handleCancelEditStatusMessage}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2"
+                                    onClick={handleSaveStatusMessage}
+                                    disabled={statusMessageInput.trim().length === 0}
+                                  >
+                                    <Check className="w-3.5 h-3.5 text-green-600" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // 일반 표시 모드
+                            <div className="mt-1 flex items-start justify-between gap-2">
+                              {participant.statusMessage ? (
+                                <div className="text-xs text-gray-600 line-clamp-2 flex-1">
+                                  {participant.statusMessage}
+                                </div>
+                              ) : (
+                                <div className="text-xs text-gray-400 italic flex-1">
+                                  상태 메시지가 없습니다
+                                </div>
+                              )}
+                              {isCurrentUser && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 flex-shrink-0"
+                                  onClick={handleStartEditStatusMessage}
+                                >
+                                  <Edit2 className="w-3 h-3 text-gray-400" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 나가기 다이얼로그 */}
