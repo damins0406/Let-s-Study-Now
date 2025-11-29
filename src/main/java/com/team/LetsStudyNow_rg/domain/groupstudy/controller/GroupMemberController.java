@@ -28,8 +28,8 @@ public class GroupMemberController {
     @PostMapping
     public ResponseEntity<GroupMemberResponse> addMember(
             @PathVariable Long groupId,
-            @RequestBody AddGroupMemberRequest request) {
-        request.setGroupId(groupId);
+            @RequestParam Long memberId) {
+        AddGroupMemberRequest request = new AddGroupMemberRequest(groupId, memberId);
         GroupMemberResponse response = groupMemberService.addMember(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
