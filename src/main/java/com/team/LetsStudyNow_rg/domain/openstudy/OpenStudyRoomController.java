@@ -5,8 +5,11 @@ import com.team.LetsStudyNow_rg.domain.member.entity.Member;
 import com.team.LetsStudyNow_rg.domain.member.repository.MemberRepository;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.OpenStudyRoomCreateDto;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.OpenStudyRoomListDto;
+import com.team.LetsStudyNow_rg.domain.openstudy.dto.ParticipantResponseDto;
 import com.team.LetsStudyNow_rg.domain.openstudy.dto.RoomJoinResultDto;
+import com.team.LetsStudyNow_rg.domain.openstudy.service.ParticipantService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,6 +35,7 @@ public class OpenStudyRoomController {
     
     private final OpenStudyRoomService openStudyRoomService;
     private final MemberRepository memberRepository;
+    private final ParticipantService participantService;
     
     /**
      * 공부 분야 목록 조회
@@ -188,5 +192,27 @@ public class OpenStudyRoomController {
     public ResponseEntity<?> getRoomDetail(@PathVariable Long roomId) {
         OpenStudyRoom room = openStudyRoomService.getRoomById(roomId);
         return ResponseEntity.ok(OpenStudyRoomListDto.from(room));
+    }
+    
+    /**
+     * 오픈스터디방 참여자 목록 조회
+     */
+    @Operation(
+        summary = "오픈스터디방 참여자 목록 조회",
+        description = "특정 오픈스터디방에 현재 참여 중인 모든 참여자의 정보를 조회합니다. " +
+                     "각 참여자의 memberId, username, profileImage, 공부/휴식 상태(TimerStatus)를 포함합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "참여자 목록 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 roomId")
+    })
+    @GetMapping("/rooms/{roomId}/participants")
+    public ResponseEntity<List<ParticipantResponseDto>> getParticipants(
+            @Parameter(description = "오픈스터디방 ID", required = true, example = "1")
+            @PathVariable Long roomId) {
+        
+        List<ParticipantResponseDto> participants = participantService.getParticipantsByRoomId(roomId);
+        
+        return ResponseEntity.ok(participants);
     }
 }
