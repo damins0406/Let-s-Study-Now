@@ -58,6 +58,7 @@ public class MemberUpdateService {
         }
 
         return new ProfileDto(
+                user.getId(),
                 user.getEmail(),
                 user.getUsername(),
                 user.getProfileImage(),
