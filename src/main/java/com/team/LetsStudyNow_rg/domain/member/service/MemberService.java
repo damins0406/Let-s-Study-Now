@@ -96,6 +96,7 @@ public class MemberService {
                 .orElseThrow(() -> new MemberNotFoundException(customUser.id));
 
         return new ProfileDto(
+                user.getId(),
                 user.getEmail(),
                 user.getUsername(),
                 user.getProfileImage(),
